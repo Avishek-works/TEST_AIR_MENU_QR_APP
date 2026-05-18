@@ -30,7 +30,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     .select("id, name, price, type, client_id, is_active")
     .eq("client_id", CLIENT_ID)
     .eq("is_active", true)
-    .order("name", { ascending: true });
+    .order("name");
 
   if (error) {
     console.error("[getMenuData] products query error:", {
