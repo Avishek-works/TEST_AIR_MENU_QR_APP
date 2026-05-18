@@ -2,6 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import type { MenuCategory, MenuItem, RestaurantTable } from "@/lib/types";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createPublicSupabase } from "@/lib/supabase/public";
+import { CLIENT_ID } from "@/lib/config";
 
 export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
 
@@ -23,12 +24,32 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
   noStore();
   const supabase = createPublicSupabase();
 
-  const [{ data: categories }, { data: items }] = await Promise.all([
-    supabase.from("menu_categories").select("id,name,sort_order").order("sort_order", { ascending: true }),
-    supabase.from("menu_items").select("*").eq("active", true).order("name", { ascending: true }),
-  ]);
+  const { data: products } = await supabase
+    .from("products")
+    .select(
+      "id, type, name, description, image_url, price, is_veg, is_non_veg, is_bestseller",
+    )
+    .eq("client_id", CLIENT_ID)
+    .eq("is_active", true)
+    .order("type", { ascending: true })
+    .order("name", { ascending: true });
 
-  return { categories: categories ?? [], items: items ?? [] };
+  const items = (products ?? []).map((product) => ({
+    id: product.id,
+    category_id: product.type,
+    name: product.name,
+    description: product.description,
+    image_url: product.image_url,
+    price: product.price,
+    is_veg: product.is_veg,
+    is_non_veg: product.is_non_veg,
+    is_bestseller: product.is_bestseller,
+  })) as MenuItem[];
+
+  const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
+  const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
+
+  return { categories, items };
 }
 
 export async function getOrderDetails(orderId: string) {
