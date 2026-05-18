@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cafe Coffee Aroma QR Ordering MVP
 
-## Getting Started
+Production-ready, mobile-first dine-in QR ordering app built with Next.js 15, TypeScript, Tailwind CSS, and Supabase.
 
-First, run the development server:
+## Tech stack
+
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS
+- Supabase
+
+## Features
+
+- Table route flow: `/order/table/[tableId]`
+- Automatic table detection from route
+- Menu browsing with category tabs, search, veg/non-veg/bestseller filters
+- Quantity steppers and persistent cart (refresh-safe)
+- Sticky mobile cart bar
+- Cart notes and customer details flow
+- Server action order placement with table validation
+- Duplicate submission guard via `client_order_token`
+- Success confirmation screen
+- Loading and empty states
+
+## Routes
+
+- `/order/table/[tableId]`
+- `/order/table/[tableId]/menu`
+- `/order/table/[tableId]/cart`
+- `/order/table/[tableId]/details`
+- `/order/table/[tableId]/success`
+
+## Environment variables
+
+Create `.env.local`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Supabase setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run SQL in order:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. `supabase/schema.sql`
+2. `supabase/seed.sql`
 
-## Learn More
+## Local run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Build & lint
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+npm run build
+```
 
-## Deploy on Vercel
+## Suggested structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+app/
+  order/
+    actions.ts
+    table/[tableId]/...
+components/
+  cart/
+  menu/
+  order/
+  ui/
+lib/
+  data.ts
+  format.ts
+  types.ts
+  supabase/
+supabase/
+  schema.sql
+  seed.sql
+```
