@@ -36,7 +36,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
   const items = (products ?? []).map((product) => ({
     id: product.id,
-    category_id: product.type,
+    category_id: product.type ?? "Uncategorized",
     name: product.name,
     description: product.description,
     image_url: product.image_url,
@@ -48,6 +48,8 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
   const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
   const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
+
+  console.log("[getMenuData] fetched products:", products?.length ?? 0, "grouped categories:", categories.length);
 
   return { categories, items };
 }
