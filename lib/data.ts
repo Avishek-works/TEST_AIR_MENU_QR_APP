@@ -5,6 +5,7 @@ import { createPublicSupabase } from "@/lib/supabase/public";
 import { CLIENT_ID } from "@/lib/config";
 
 export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
+const MENU_FALLBACK_IMAGE = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500";
 
 export async function getActiveTable(tableId: string): Promise<RestaurantTable | null> {
   noStore();
@@ -24,32 +25,35 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
   noStore();
   const supabase = createPublicSupabase();
 
-  const { data: products } = await supabase
+  const { data: products, error } = await supabase
     .from("products")
-    .select(
-      "id, type, name, description, image_url, price, is_veg, is_non_veg, is_bestseller",
-    )
+    .select("id, name, price, type, client_id, is_active")
     .eq("client_id", CLIENT_ID)
     .eq("is_active", true)
     .order("type", { ascending: true })
     .order("name", { ascending: true });
 
+  console.log("[getMenuData] supabase products error:", error);
+  console.log("[getMenuData] fetched products count:", products?.length ?? 0);
+  console.log("[getMenuData] first fetched product:", products?.[0] ?? null);
+
   const items = (products ?? []).map((product) => ({
     id: product.id,
     category_id: product.type ?? "Uncategorized",
     name: product.name,
-    description: product.description,
-    image_url: product.image_url,
+    description: "",
+    image_url: MENU_FALLBACK_IMAGE,
     price: product.price,
-    is_veg: product.is_veg,
-    is_non_veg: product.is_non_veg,
-    is_bestseller: product.is_bestseller,
+    is_veg: false,
+    is_non_veg: false,
+    is_bestseller: false,
+    active: product.is_active,
   })) as MenuItem[];
 
   const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
   const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
 
-  console.log("[getMenuData] fetched products:", products?.length ?? 0, "grouped categories:", categories.length);
+  console.log("[getMenuData] grouped categories:", categories.length);
 
   return { categories, items };
 }
