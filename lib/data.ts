@@ -30,10 +30,16 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     .select("id, name, price, type, client_id, is_active")
     .eq("client_id", CLIENT_ID)
     .eq("is_active", true)
-    .order("type", { ascending: true })
-    .order("name", { ascending: true });
+    .order("name");
 
-  console.log("[getMenuData] supabase products error:", error);
+  if (error) {
+    console.error("[getMenuData] products query error:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+  }
   console.log("[getMenuData] fetched products count:", products?.length ?? 0);
   console.log("[getMenuData] first fetched product:", products?.[0] ?? null);
 
