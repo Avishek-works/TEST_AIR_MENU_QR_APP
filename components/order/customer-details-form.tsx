@@ -42,7 +42,11 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
       });
 
       if (!result.ok || !result.orderId) {
-        setError(result.error || "Unable to place order.");
+        const message =
+          result.error === "Table is invalid or inactive."
+            ? "The table number is invalid or inactive. Please return home and enter a valid table number."
+            : result.error || "Unable to place order.";
+        setError(message);
         return;
       }
 

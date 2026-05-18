@@ -22,7 +22,7 @@ export default function Home() {
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              router.push(`/order/table/${normalizedTable}`);
+              router.push(`/order/table/${normalizedTable}/menu`);
             }}
             className="mt-6 space-y-4"
           >
@@ -45,11 +45,11 @@ export default function Home() {
                 Start Ordering
               </button>
               <Link
-                href="/order/table/T1"
+                href="/order/table/T1/menu"
                 className="inline-flex min-h-[3rem] items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 text-sm font-medium text-[var(--brand-brown)] transition hover:border-[var(--brand-brown)]"
                 style={{ boxShadow: '0 6px 18px rgba(74,44,33,0.06)' }}
               >
-                Explore Demo Menu
+                Explore Menu
               </Link>
             </div>
           </form>
