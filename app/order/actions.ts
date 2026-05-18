@@ -9,6 +9,7 @@ const REQUIRED_PAYMENT_STATUS = "UNPAID";
 const sanitizeText = (value: string | undefined | null) => (value ?? "").trim();
 
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+  try {
   const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
   const customerName = sanitizeText(input.customerName);
   const customerPhone = sanitizeText(input.customerPhone);
@@ -103,4 +104,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   }
 
   return { ok: true, orderId: order.id };
+  } catch (error) {
+    return { ok: false, error: "Unable to submit order. Please try again." };
+  }
 }

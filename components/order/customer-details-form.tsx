@@ -54,10 +54,13 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold text-white">Customer Details</h1>
-      <p className="mt-1 text-sm text-zinc-400">We need this to process your order quickly.</p>
+      <div className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-5 shadow-[0_18px_40px_-20px_rgba(74,44,33,0.04)]">
+        <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Checkout</p>
+        <h1 className="mt-3 text-3xl font-semibold text-[var(--brand-brown)]">Customer details</h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">A few details to complete your premium cafe order.</p>
+      </div>
 
-      <form onSubmit={placeOrder} className="mt-5 space-y-4">
+      <form onSubmit={placeOrder} className="mt-5 space-y-5">
         <Field
           label="Name *"
           value={customer.name}
@@ -85,30 +88,32 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
           placeholder="YYYY-MM-DD"
         />
 
-        <p className="-mt-2 text-xs text-zinc-500">Get special birthday treats & offers 🎉</p>
+        <p className="text-xs text-[var(--muted)]">Share your birthday for special treats and offers.</p>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-          <div className="flex items-center justify-between text-sm text-zinc-300">
-            <span>Total</span>
-            <span className="font-semibold text-white">₹{subtotal.toFixed(2)}</span>
+        <div className="rounded-[1.75rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-beige)] p-4">
+          <div className="flex items-center justify-between text-sm text-[var(--muted)]">
+            <span>Order total</span>
+            <span className="font-semibold text-[var(--brand-brown)]">₹{subtotal.toFixed(2)}</span>
           </div>
         </div>
 
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        {error ? <p className="text-sm text-[var(--brand-brown)]">{error}</p> : null}
 
         <button
           disabled={isPending}
-          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-red-600 font-medium text-white transition enabled:hover:bg-red-500 disabled:opacity-60"
+          className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 font-semibold text-[var(--brand-white)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
           type="submit"
+          style={{ boxShadow: '0 8px 20px rgba(74,44,33,0.12)' }}
         >
-          {isPending ? "Placing Order..." : "Place Order"}
+          {isPending ? "Placing order..." : "Place order"}
         </button>
 
         <Link
           href={`/order/table/${tableId}/cart`}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-zinc-700 text-sm text-zinc-300"
+          className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 text-sm font-medium text-[var(--brand-brown)] transition hover:border-[var(--brand-brown)]"
+          style={{ boxShadow: '0 6px 18px rgba(74,44,33,0.04)' }}
         >
-          Back to Cart
+          Back to cart
         </Link>
       </form>
     </section>
@@ -130,13 +135,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-sm text-zinc-300">{label}</span>
+      <span className="text-sm text-[var(--muted)]">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="mt-2 h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none ring-red-500/40 placeholder:text-zinc-500 focus:ring"
+        className="mt-3 w-full rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 py-3 text-sm text-[var(--brand-brown)] outline-none transition focus:border-[var(--brand-brown)] focus:ring-2 focus:ring-[var(--brand-brown-opaque)]"
       />
     </label>
   );
