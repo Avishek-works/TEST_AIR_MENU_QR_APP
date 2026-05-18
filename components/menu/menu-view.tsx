@@ -41,9 +41,9 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     const normalizedQuery = query.trim().toLowerCase();
     return items.filter((item) => {
       if (activeCategory && item.category_id !== activeCategory) return false;
-      if (vegOnly && !item.is_veg) return false;
-      if (nonVegOnly && !item.is_non_veg) return false;
-      if (bestOnly && !item.is_bestseller) return false;
+      if (vegOnly && item.is_veg === false) return false;
+      if (nonVegOnly && item.is_non_veg === false) return false;
+      if (bestOnly && item.is_bestseller === false) return false;
       if (!normalizedQuery) return true;
       return (
         item.name.toLowerCase().includes(normalizedQuery) ||
@@ -89,9 +89,9 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1">
-            <FilterButton label="Veg" active={vegOnly} onClick={() => setVegOnly((v) => !v)} />
-            <FilterButton label="Non-veg" active={nonVegOnly} onClick={() => setNonVegOnly((v) => !v)} />
-            <FilterButton label="Bestseller" active={bestOnly} onClick={() => setBestOnly((v) => !v)} />
+            <FilterButton label="Veg" active={vegOnly} onClick={() => setVegOnly((v) => !v)} disabled />
+            <FilterButton label="Non-veg" active={nonVegOnly} onClick={() => setNonVegOnly((v) => !v)} disabled />
+            <FilterButton label="Bestseller" active={bestOnly} onClick={() => setBestOnly((v) => !v)} disabled />
           </div>
         </div>
       </div>
@@ -158,13 +158,16 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
   );
 }
 
-function FilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterButton({ label, active, onClick, disabled }: { label: string; active: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={`shrink-0 rounded-full px-3 py-2 text-sm font-semibold transition ${
-        active
+        disabled
+          ? "cursor-not-allowed bg-[var(--brand-beige)] text-[var(--border)]"
+          : active
           ? "bg-[var(--brand-brown)] text-[var(--brand-white)] shadow-[0_8px_20px_-16px_rgba(74,44,33,0.7)]"
           : "bg-[var(--brand-beige)] text-[var(--brand-brown)] hover:brightness-95"
       }`}
