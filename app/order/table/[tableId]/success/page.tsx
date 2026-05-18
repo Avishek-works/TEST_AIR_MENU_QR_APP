@@ -61,7 +61,7 @@ export default async function SuccessPage({
         </section>
       </main>
     );
-  } catch (error) {
+  } catch {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
         <section className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-8 shadow-[0_35px_90px_-42px_rgba(74,44,33,0.04)]">

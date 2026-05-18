@@ -104,7 +104,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   }
 
   return { ok: true, orderId: order.id };
-  } catch (error) {
+  } catch {
     return { ok: false, error: "Unable to submit order. Please try again." };
   }
 }
