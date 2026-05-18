@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: radial-gradient(circle at top, #171717, #000 50%);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
