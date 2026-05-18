@@ -16,10 +16,10 @@ export function StickyCartBar({ tableId }: { tableId: string }) {
     <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md p-3">
       <Link
         href={`/order/table/${tableId}/cart`}
-        className="flex h-14 items-center justify-between rounded-xl bg-red-600 px-4 text-white shadow-xl shadow-red-950/40"
+        className="flex h-16 items-center justify-between rounded-[1.5rem] bg-[var(--brand-brown)] px-5 text-[var(--brand-white)] shadow-[0_20px_46px_-20px_rgba(74,44,33,0.18)] transition hover:brightness-95"
       >
-        <span className="text-sm font-medium">{itemCount} item(s)</span>
-        <span className="text-sm font-semibold">View Cart · {formatCurrency(subtotal)}</span>
+        <span className="text-sm font-semibold">{itemCount} item(s)</span>
+        <span className="text-sm font-semibold">Cart · {formatCurrency(subtotal)}</span>
       </Link>
     </div>
   );

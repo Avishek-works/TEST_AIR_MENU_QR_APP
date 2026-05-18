@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import type { MenuCategory, MenuItem, RestaurantTable } from "@/lib/types";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createPublicSupabase } from "@/lib/supabase/public";
 
 export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
@@ -28,4 +29,21 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
   ]);
 
   return { categories: categories ?? [], items: items ?? [] };
+}
+
+export async function getOrderDetails(orderId: string) {
+  noStore();
+  const supabase = createAdminSupabase();
+
+  const { data, error } = await supabase
+    .from("qr_orders")
+    .select("id,table_number,total")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }

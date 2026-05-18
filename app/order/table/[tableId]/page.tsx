@@ -10,14 +10,19 @@ export default async function TablePage({ params }: { params: Promise<{ tableId:
   if (!table) notFound();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4">
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-950/80 p-6 shadow-xl shadow-black/40">
-        <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">Cafe Coffee Aroma</p>
-        <h1 className="mt-3 text-3xl font-semibold text-white">Table {table.table_number}</h1>
-        <p className="mt-2 text-sm text-zinc-400">Premium brews, bites, and fast QR ordering.</p>
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+      <section className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-6 shadow-[0_30px_70px_-36px_rgba(74,44,33,0.04)] backdrop-blur-sm">
+        <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Cafe Coffee Aroma</p>
+        <h1 className="mt-4 text-4xl font-semibold text-[var(--brand-brown)]">Table {table.table_number}</h1>
+        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+           Scan the QR code at the table to get started. You can browse the menu, add items to your cart, and place your order directly from your phone.
+        </p>
+        <div className="mt-6 rounded-[1.75rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-beige)] p-5 shadow-[0_20px_40px_-26px_rgba(74,44,33,0.06)]">
+          <p className="text-sm text-[var(--muted)]">Scan the menu, add favorites, and place your order in minutes.</p>
+        </div>
         <Link
           href={`/order/table/${table.table_number}/menu`}
-          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-red-600 font-medium text-white transition hover:bg-red-500"
+            className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 font-semibold text-[var(--brand-white)] transition hover:brightness-95"
         >
           Start Ordering
         </Link>
