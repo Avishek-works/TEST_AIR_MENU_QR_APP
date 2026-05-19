@@ -109,14 +109,16 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
 
     if (orderError) {
-      console.log("[order] supabase insert qr_orders failed", {
+      console.error("[order] supabase insert qr_orders failed", {
         code: orderError.code,
         message: orderError.message,
+        details: (orderError as { details?: unknown }).details,
+        hint: (orderError as { hint?: unknown }).hint,
       });
     }
 
-
     if (orderError || !order) {
+
       if (orderError?.code === "23505" && input.clientToken) {
         const { data: existing } = await supabase
           .from("qr_orders")
@@ -144,18 +146,36 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     );
 
     if (itemError) {
-      console.log("[order] supabase insert qr_order_items failed", {
+      console.error("[order] supabase insert qr_order_items failed", {
         code: itemError.code,
         message: itemError.message,
+        details: (itemError as { details?: unknown }).details,
+        hint: (itemError as { hint?: unknown }).hint,
       });
 
       await supabase.from("qr_orders").delete().eq("id", order.id);
       return { ok: false, error: "Could not save order items. Please retry." };
     }
 
+
     return { ok: true, orderId: order.id };
-  } catch {
+  } catch (err) {
+    console.error("[order] submit flow crashed", {
+      message: err instanceof Error ? err.message : String(err),
+      // Do not log secrets; only high-level payload shape.
+      input: {
+        tableNumber: sanitizeText(input.tableNumber).toUpperCase(),
+        customerPhoneLen: sanitizePhone(input.customerPhone).length,
+        hasCustomerEmail: Boolean(input.customerEmail),
+        hasCustomerDob: Boolean(input.customerDob),
+        hasNotes: Boolean(sanitizeText(input.notes)),
+        itemsCount: input.items?.length ?? 0,
+      },
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+
     return { ok: false, error: "Unable to submit order. Please try again." };
   }
 }
+
 
