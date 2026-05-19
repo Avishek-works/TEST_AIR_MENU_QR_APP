@@ -1,6 +1,13 @@
 "use server";
 
-import { createAdminSupabase } from "@/lib/supabase/admin";
+import { createBill, deleteBillById } from "@/db/bills";
+import {
+  createCustomer,
+  deleteCustomerById,
+  findCustomerIdByPhone,
+  findCustomerProfileByPhone,
+} from "@/db/customers";
+import { createBillItems } from "@/db/orders";
 import { getConfiguredClientId } from "@/lib/config";
 import { getOrderNotesSupport } from "@/lib/order-capabilities";
 import type { CustomerLookupResult, PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
@@ -56,13 +63,7 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
       return { found: false };
     }
 
-    const supabase = createAdminSupabase();
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id,name,email,dob")
-      .eq("client_id", clientId)
-      .eq("phone", sanitizedPhone)
-      .maybeSingle();
+    const { data, error } = await findCustomerProfileByPhone(clientId, sanitizedPhone);
 
     if (error || !data) {
       if (error) {
@@ -169,7 +170,6 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Restaurant configuration missing." };
     }
 
-    const supabase = createAdminSupabase();
     const orderNotesSupport = await getOrderNotesSupport();
     let createdCustomerId: string | null = null;
 
@@ -178,11 +178,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         return;
       }
 
-      const { error: customerRollbackError } = await supabase
-        .from("customers")
-        .delete()
-        .eq("id", createdCustomerId)
-        .eq("client_id", clientId);
+      const { error: customerRollbackError } = await deleteCustomerById(clientId, createdCustomerId);
 
       if (customerRollbackError) {
         console.error("[order] rollback delete customer failed", {
@@ -194,12 +190,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       }
     };
 
-    const { data: existingCustomer, error: existingCustomerError } = await supabase
-      .from("customers")
-      .select("id,name,email,dob")
-      .eq("client_id", clientId)
-      .eq("phone", customerPhone)
-      .maybeSingle();
+    const { data: existingCustomer, error: existingCustomerError } = await findCustomerProfileByPhone(clientId, customerPhone);
 
     if (existingCustomerError) {
       console.error("[order] customer lookup for placement failed", {
@@ -216,35 +207,20 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         return { ok: false, error: "Name is required for new customers." };
       }
 
-      const customerInsertPayload: Record<string, string | boolean> = {
-        client_id: clientId,
+      const { data: createdCustomer, error: createCustomerError } = await createCustomer({
+        clientId,
         name: customerName,
         phone: customerPhone,
-        is_active: true,
-      };
-
-      if (customerEmail) {
-        customerInsertPayload.email = customerEmail;
-      }
-
-      if (customerDob) {
-        customerInsertPayload.dob = customerDob;
-      }
-
-      const { data: createdCustomer, error: createCustomerError } = await supabase
-        .from("customers")
-        .insert(customerInsertPayload)
-        .select("id")
-        .single();
+        email: customerEmail || undefined,
+        dob: customerDob || undefined,
+      });
 
       if (createCustomerError || !createdCustomer) {
         if (createCustomerError?.code === "23505") {
-          const { data: fetchedAfterConflict, error: fetchAfterConflictError } = await supabase
-            .from("customers")
-            .select("id")
-            .eq("client_id", clientId)
-            .eq("phone", customerPhone)
-            .maybeSingle();
+          const { data: fetchedAfterConflict, error: fetchAfterConflictError } = await findCustomerIdByPhone(
+            clientId,
+            customerPhone,
+          );
 
           if (fetchAfterConflictError || !fetchedAfterConflict) {
             console.error("[order] customer re-fetch failed after duplicate conflict", {
@@ -273,25 +249,17 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Could not resolve customer profile. Please retry." };
     }
 
-    const billInsertPayload: Record<string, string | number> = {
-      client_id: clientId,
-      customer_id: resolvedCustomerId,
-      table_number: tableNumber,
-      total_amount: totalAmount,
+    const { data: bill, error: billError } = await createBill({
+      clientId,
+      customerId: resolvedCustomerId,
+      tableNumber,
+      totalAmount,
       discount,
-      final_amount: finalAmount,
+      finalAmount,
       status: REQUIRED_STATUS,
-    };
-
-    if (orderNotesSupport.columnName && orderNotes) {
-      billInsertPayload[orderNotesSupport.columnName] = orderNotes;
-    }
-
-    const { data: bill, error: billError } = await supabase
-      .from("bills")
-      .insert(billInsertPayload)
-      .select("id,client_id")
-      .single();
+      notesColumn: orderNotesSupport.columnName,
+      notes: orderNotes || undefined,
+    });
 
     if (billError) {
       console.error("[order] supabase insert bills failed", {
@@ -300,8 +268,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         details: (billError as { details?: unknown }).details,
         hint: (billError as { hint?: unknown }).hint,
         payloadShape: {
-          ...billInsertPayload,
-          hasCustomerId: Boolean(billInsertPayload.customer_id),
+          client_id: clientId,
+          customer_id: resolvedCustomerId,
+          table_number: tableNumber,
+          total_amount: totalAmount,
+          discount,
+          final_amount: finalAmount,
+          status: REQUIRED_STATUS,
+          hasCustomerId: Boolean(resolvedCustomerId),
         },
       });
     }
@@ -318,7 +292,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         actualClientId: bill.client_id,
       });
 
-      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      const { error: rollbackError } = await deleteBillById(bill.id);
       if (rollbackError) {
         console.error("[order] rollback delete bills failed after client_id mismatch", {
           code: rollbackError.code,
@@ -331,14 +305,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     }
 
     const billItemPayload = normalizedItems.map((item) => ({
-      bill_id: bill.id,
-      product_id: item.productId,
+      billId: bill.id,
+      productId: item.productId,
       quantity: item.quantity,
       price: item.price,
       total: item.total,
     }));
 
-    const { error: itemError } = await supabase.from("bill_items").insert(billItemPayload);
+    const { error: itemError } = await createBillItems(billItemPayload);
 
     if (itemError) {
       console.error("[order] supabase insert bill_items failed", {
@@ -349,11 +323,11 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         payloadShape: {
           billId: bill.id,
           itemsCount: billItemPayload.length,
-          hasInvalidProductId: billItemPayload.some((item) => !item.product_id),
+          hasInvalidProductId: billItemPayload.some((item) => !item.productId),
         },
       });
 
-      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      const { error: rollbackError } = await deleteBillById(bill.id);
       if (rollbackError) {
         console.error("[order] rollback delete bills failed", {
           code: rollbackError.code,
