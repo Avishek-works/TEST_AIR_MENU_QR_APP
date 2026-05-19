@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { formatCurrency } from "@/lib/format";
-import { ALL_CATEGORY, MENU_DEFAULT_IMAGE, enrichMenuItems, resolveMenuImage } from "@/lib/menu-ui";
+import { ALL_CATEGORY, MENU_DEFAULT_IMAGE, enrichMenuItems, resolveMenuImage, toTitleCaseLabel } from "@/lib/menu-ui";
 import type { CategoryFilter, MenuCategory, MenuPresentationItem, RawMenuItem } from "@/lib/types";
 
 interface MenuViewProps {
@@ -48,6 +48,36 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     });
   }, [activeCategory, bestOnly, enrichedItems, nonVegOnly, query, vegOnly]);
 
+  const groupedItems = useMemo(() => {
+    const categoryById = new Map(sortedCategories.map((category) => [category.id, category]));
+    const itemsByCategory = new Map<string, MenuPresentationItem[]>();
+
+    filteredItems.forEach((item) => {
+      const existingItems = itemsByCategory.get(item.category_id) ?? [];
+      existingItems.push(item);
+      itemsByCategory.set(item.category_id, existingItems);
+    });
+
+    const orderedGroups = sortedCategories
+      .filter((category) => itemsByCategory.has(category.id))
+      .map((category) => ({
+        id: category.id,
+        label: toTitleCaseLabel(category.name),
+        items: itemsByCategory.get(category.id) ?? [],
+      }));
+
+    itemsByCategory.forEach((categoryItems, categoryId) => {
+      if (categoryById.has(categoryId)) return;
+      orderedGroups.push({
+        id: categoryId,
+        label: toTitleCaseLabel(categoryId || "Uncategorized"),
+        items: categoryItems,
+      });
+    });
+
+    return orderedGroups;
+  }, [filteredItems, sortedCategories]);
+
   return (
     <section>
       {/* Header */}
@@ -82,7 +112,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
             <CategoryChip
               key={category.id}
               active={activeCategory === category.id}
-              label={category.name}
+              label={toTitleCaseLabel(category.name)}
               onClick={() => setActiveCategory(category.id)}
             />
           ))}
@@ -91,7 +121,8 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
         {/* Filter pills */}
         <div className="mt-2 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <FilterButton
-            label="🌿 Veg"
+            label="Veg"
+            indicator="veg"
             active={vegOnly}
             onClick={() => {
               const next = !vegOnly;
@@ -100,7 +131,8 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
             }}
           />
           <FilterButton
-            label="🍗 Non-Veg"
+            label="Non-Veg"
+            indicator="non-veg"
             active={nonVegOnly}
             onClick={() => {
               const next = !nonVegOnly;
@@ -117,26 +149,37 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
           <p className="text-sm text-[var(--text-secondary)]">No items match your filters.</p>
         </div>
       ) : (
-        <div className="mt-4 space-y-2.5 pb-4">
-          {filteredItems.map((item) => {
-            const qty = qtyById.get(item.id) ?? 0;
-            return (
-              <MenuItemCard
-                key={item.id}
-                item={item}
-                qty={qty}
-                onAdd={() =>
-                  addItem({
-                    menuItemId: item.id,
-                    itemName: item.name,
-                    unitPrice: item.price,
-                    imageUrl: item.uiImage,
-                  })
-                }
-                onDecrease={() => setQty(item.id, qty - 1)}
-              />
-            );
-          })}
+        <div className="mt-4 space-y-4 pb-4">
+          {groupedItems.map((group) => (
+            <section key={group.id} className="space-y-2.5">
+              <div className="flex items-center gap-3 px-1">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--accent-gold)]">
+                  {group.label}
+                </h2>
+                <span className="h-px flex-1 bg-[linear-gradient(90deg,rgba(252,176,58,0.22),transparent)]" />
+              </div>
+
+              {group.items.map((item) => {
+                const qty = qtyById.get(item.id) ?? 0;
+                return (
+                  <MenuItemCard
+                    key={item.id}
+                    item={item}
+                    qty={qty}
+                    onAdd={() =>
+                      addItem({
+                        menuItemId: item.id,
+                        itemName: item.name,
+                        unitPrice: item.price,
+                        imageUrl: item.uiImage,
+                      })
+                    }
+                    onDecrease={() => setQty(item.id, qty - 1)}
+                  />
+                );
+              })}
+            </section>
+          ))}
         </div>
       )}
     </section>
@@ -165,14 +208,18 @@ function MenuItemCard({
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <h3 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)] leading-snug">{item.name}</h3>
+        <h3 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)] leading-snug">
+          {toTitleCaseLabel(item.name)}
+        </h3>
         {item.description ? (
-          <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--text-secondary)] leading-relaxed">{item.description}</p>
+          <p className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+            {toTitleCaseLabel(item.description)}
+          </p>
         ) : null}
         <p className="mt-1 text-[15px] font-bold text-[var(--accent-gold)] tracking-tight">{formatCurrency(item.price)}</p>
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {item.uiIsVeg ? <Badge label="Veg" color="green" /> : null}
-          {item.uiIsNonVeg ? <Badge label="Non-Veg" color="red" /> : null}
+        <div className="mt-1.5 flex items-center gap-2">
+          {item.uiIsVeg ? <FoodIndicator kind="veg" /> : null}
+          {item.uiIsNonVeg ? <FoodIndicator kind="non-veg" /> : null}
           {item.uiIsBestseller ? <Badge label="★ Top Pick" color="gold" /> : null}
         </div>
       </div>
@@ -239,7 +286,17 @@ function CategoryChip({ label, active, onClick }: { label: string; active: boole
 
 /* ─── Filter Button ──────────────────────────────────────────────────── */
 
-function FilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterButton({
+  label,
+  indicator,
+  active,
+  onClick,
+}: {
+  label: string;
+  indicator?: "veg" | "non-veg";
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -250,6 +307,7 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
           : "border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
       }`}
     >
+      {indicator ? <FoodIndicator kind={indicator} compact /> : null}
       {label}
     </button>
   );
@@ -266,5 +324,30 @@ function Badge({ label, color }: { label: string; color: "green" | "red" | "gold
 
   return (
     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${styles[color]}`}>{label}</span>
+  );
+}
+
+function FoodIndicator({
+  kind,
+  compact = false,
+}: {
+  kind: "veg" | "non-veg";
+  compact?: boolean;
+}) {
+  const indicatorStyles =
+    kind === "veg"
+      ? "border-emerald-500/70 bg-emerald-500/10 text-emerald-400"
+      : "border-red-500/70 bg-red-500/10 text-red-400";
+
+  return (
+    <span
+      aria-label={kind === "veg" ? "Vegetarian" : "Non-vegetarian"}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${indicatorStyles}`}
+    >
+      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-[3px] border border-current">
+        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      </span>
+      {!compact ? <span>{kind === "veg" ? "Veg" : "Non-Veg"}</span> : null}
+    </span>
   );
 }

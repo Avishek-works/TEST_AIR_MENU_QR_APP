@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getOrderDetails, normalizeTable } from "@/lib/data";
+import { ORDER_PREPARATION_ETA_LABEL } from "@/lib/table-config";
 
 export default async function SuccessPage({
   params,
@@ -66,6 +67,12 @@ export default async function SuccessPage({
                 {Number(order.final_amount || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" })}
               </span>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[linear-gradient(180deg,rgba(252,176,58,0.12),rgba(37,28,18,0.7))] p-4 shadow-[0_12px_28px_-18px_rgba(252,176,58,0.24)] transition-transform duration-200">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[var(--accent-gold)]">Estimated Preparation Time</p>
+            <p className="mt-2 text-lg font-semibold tracking-tight text-[var(--text-primary)]">{ORDER_PREPARATION_ETA_LABEL}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">We&apos;ll start preparing it right away and serve it fresh at your table.</p>
           </div>
 
           <Link href={`/order/table/${normalizedTable}/menu`} className="btn-gold mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-2xl text-sm font-bold shadow-[0_4px_18px_rgba(252,176,58,0.30)] tracking-wide">

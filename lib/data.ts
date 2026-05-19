@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
+import { sortCategoryNames } from "@/lib/menu-ui";
 import type { MenuCategory, RawMenuItem } from "@/lib/types";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createPublicSupabase } from "@/lib/supabase/public";
@@ -11,8 +12,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
   const { data: products, error } = await supabase
     .from("products")
-    .select("id, name, price, type")
-    .order("name");
+    .select("id, name, price, type");
 
   if (error) {
     console.error("[getMenuData] products query error:", {
@@ -36,7 +36,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     active: true,
   })) as RawMenuItem[];
 
-  const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
+  const categoryNames = sortCategoryNames(Array.from(new Set(items.map((item) => item.category_id))));
   const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
 
   return { categories, items };

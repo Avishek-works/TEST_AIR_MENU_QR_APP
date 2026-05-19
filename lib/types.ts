@@ -48,6 +48,7 @@ export interface PlaceOrderInput {
   tableNumber: string;
   customerName: string;
   customerPhone: string;
+  notes?: string;
   items: CartLineItem[];
 }
 
