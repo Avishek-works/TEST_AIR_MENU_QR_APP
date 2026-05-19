@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="Tea">
+  <rect width="320" height="220" fill="#3D2B16"/>
+  <ellipse cx="160" cy="172" rx="96" ry="13" fill="#221A0C"/>
+  <rect x="94" y="84" width="128" height="64" rx="14" fill="#FCB03A"/>
+  <rect x="106" y="96" width="104" height="40" rx="10" fill="#2B2014"/>
+  <path d="M228 96h13c12 0 22 10 22 22s-10 22-22 22h-13" stroke="#FCB03A" stroke-width="10" fill="none"/>
+</svg>

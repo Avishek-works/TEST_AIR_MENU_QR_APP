@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="Bakery">
+  <rect width="320" height="220" fill="#3D2B16"/>
+  <ellipse cx="160" cy="180" rx="100" ry="12" fill="#221A0C"/>
+  <path d="M76 142c0-34 28-62 62-62h44c34 0 62 28 62 62v10H76z" fill="#FCB03A"/>
+  <path d="M94 140c8-18 20-26 34-26s26 8 34 26" stroke="rgba(43,32,20,0.55)" stroke-width="8" fill="none"/>
+  <path d="M162 140c8-18 20-26 34-26s26 8 34 26" stroke="rgba(43,32,20,0.55)" stroke-width="8" fill="none"/>
+</svg>

@@ -9,6 +9,7 @@ const REQUIRED_PAYMENT_STATUS = "UNPAID";
 const sanitizeText = (value: string | undefined | null) => (value ?? "").trim();
 
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+  try {
   const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
   const customerName = sanitizeText(input.customerName);
   const customerPhone = sanitizeText(input.customerPhone);
@@ -19,7 +20,13 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
   const normalizedItems = input.items
     .filter((item) => item.qty > 0)
-    .map((item) => ({ ...item, totalPrice: item.qty * item.unitPrice }));
+    .map((item) => ({
+      menuItemId: item.menuItemId,
+      itemName: item.itemName,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+      totalPrice: item.qty * item.unitPrice,
+    }));
 
   if (!normalizedItems.length) {
     return { ok: false, error: "Cart is empty." };
@@ -103,4 +110,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
   }
 
   return { ok: true, orderId: order.id };
+  } catch {
+    return { ok: false, error: "Unable to submit order. Please try again." };
+  }
 }

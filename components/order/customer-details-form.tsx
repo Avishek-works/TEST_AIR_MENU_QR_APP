@@ -42,7 +42,11 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
       });
 
       if (!result.ok || !result.orderId) {
-        setError(result.error || "Unable to place order.");
+        const message =
+          result.error === "Table is invalid or inactive."
+            ? "The table number is invalid or inactive. Please return home and enter a valid table number."
+            : result.error || "Unable to place order.";
+        setError(message);
         return;
       }
 
@@ -54,8 +58,12 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
 
   return (
     <section>
-      <h1 className="text-2xl font-semibold text-white">Customer Details</h1>
-      <p className="mt-1 text-sm text-zinc-400">We need this to process your order quickly.</p>
+      {/* Header */}
+      <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.55)]">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">Checkout</p>
+        <h1 className="mt-1.5 text-2xl font-semibold text-[var(--text-primary)] tracking-tight">Your details</h1>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">A few details to complete your order.</p>
+      </div>
 
       <form onSubmit={placeOrder} className="mt-5 space-y-4">
         <Field
@@ -85,30 +93,33 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
           placeholder="YYYY-MM-DD"
         />
 
-        <p className="-mt-2 text-xs text-zinc-500">Get special birthday treats & offers 🎉</p>
+        <p className="text-xs text-[var(--text-secondary)]">Share your birthday for special treats and offers.</p>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-          <div className="flex items-center justify-between text-sm text-zinc-300">
-            <span>Total</span>
-            <span className="font-semibold text-white">₹{subtotal.toFixed(2)}</span>
+        {/* Order total */}
+        <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--bg-elevated)] p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-[var(--text-secondary)]">Order total</span>
+            <span className="text-xl font-bold text-[var(--accent-gold)] tracking-tight">₹{subtotal.toFixed(2)}</span>
           </div>
         </div>
 
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        {error ? (
+          <p className="rounded-xl border border-red-800/40 bg-red-950/40 px-4 py-3 text-sm font-medium text-red-400">{error}</p>
+        ) : null}
 
         <button
           disabled={isPending}
-          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-red-600 font-medium text-white transition enabled:hover:bg-red-500 disabled:opacity-60"
+          className="btn-gold inline-flex min-h-12 w-full items-center justify-center rounded-2xl px-4 text-sm font-bold shadow-[0_4px_18px_rgba(252,176,58,0.30)] tracking-wide"
           type="submit"
         >
-          {isPending ? "Placing Order..." : "Place Order"}
+          {isPending ? "Placing order…" : "Place order →"}
         </button>
 
         <Link
           href={`/order/table/${tableId}/cart`}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-zinc-700 text-sm text-zinc-300"
+          className="btn-ghost inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
         >
-          Back to Cart
+          ← Back to cart
         </Link>
       </form>
     </section>
@@ -130,13 +141,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-sm text-zinc-300">{label}</span>
+      <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="mt-2 h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none ring-red-500/40 placeholder:text-zinc-500 focus:ring"
+        className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-all duration-200 focus:border-[var(--border-warm)] focus:ring-2 focus:ring-[var(--accent-gold-soft)]"
       />
     </label>
   );

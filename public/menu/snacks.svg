@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="Snacks">
+  <rect width="320" height="220" fill="#3D2B16"/>
+  <rect x="74" y="84" width="172" height="90" rx="16" fill="#FCB03A"/>
+  <rect x="90" y="103" width="140" height="10" rx="5" fill="#2B2014"/>
+  <rect x="90" y="123" width="116" height="10" rx="5" fill="#2B2014"/>
+  <rect x="90" y="143" width="92" height="10" rx="5" fill="#2B2014"/>
+</svg>

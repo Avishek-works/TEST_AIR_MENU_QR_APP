@@ -5,16 +5,21 @@ import { useMemo, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { formatCurrency } from "@/lib/format";
-import type { MenuCategory, MenuItem } from "@/lib/types";
+import { ALL_CATEGORY, MENU_DEFAULT_IMAGE, enrichMenuItems, resolveMenuImage } from "@/lib/menu-ui";
+import type { CategoryFilter, MenuCategory, MenuPresentationItem, RawMenuItem } from "@/lib/types";
 
 interface MenuViewProps {
   tableNumber: string;
   categories: MenuCategory[];
-  items: MenuItem[];
+  items: RawMenuItem[];
 }
 
 export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
-  const [activeCategory, setActiveCategory] = useState<string>(categories[0]?.id ?? "");
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.sort_order - b.sort_order),
+    [categories],
+  );
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>(ALL_CATEGORY);
   const [query, setQuery] = useState("");
   const [vegOnly, setVegOnly] = useState(false);
   const [nonVegOnly, setNonVegOnly] = useState(false);
@@ -27,102 +32,109 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     return map;
   }, [cartItems]);
 
+  const enrichedItems = useMemo(() => enrichMenuItems(items), [items]);
+
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return items.filter((item) => {
-      if (activeCategory && item.category_id !== activeCategory) return false;
-      if (vegOnly && !item.is_veg) return false;
-      if (nonVegOnly && !item.is_non_veg) return false;
-      if (bestOnly && !item.is_bestseller) return false;
+
+    return enrichedItems.filter((item) => {
+      if (activeCategory !== ALL_CATEGORY && item.category_id !== activeCategory) return false;
+      if (vegOnly && !item.uiIsVeg) return false;
+      if (nonVegOnly && !item.uiIsNonVeg) return false;
+      if (bestOnly && !item.uiIsBestseller) return false;
+
       if (!normalizedQuery) return true;
-      return (
-        item.name.toLowerCase().includes(normalizedQuery) ||
-        (item.description ?? "").toLowerCase().includes(normalizedQuery)
-      );
+      return item.name.toLowerCase().includes(normalizedQuery) || (item.description ?? "").toLowerCase().includes(normalizedQuery);
     });
-  }, [activeCategory, bestOnly, items, nonVegOnly, query, vegOnly]);
+  }, [activeCategory, bestOnly, enrichedItems, nonVegOnly, query, vegOnly]);
 
   return (
     <section>
-      <p className="text-xs uppercase tracking-[0.28em] text-zinc-500">Table {tableNumber}</p>
-      <h1 className="mt-2 text-2xl font-semibold text-white">Menu</h1>
+      {/* Header */}
+      <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.55)]">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">Table {tableNumber}</p>
+        <h1 className="mt-1.5 text-2xl font-semibold text-[var(--text-primary)] tracking-tight">Order Menu</h1>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">Select your picks from the table.</p>
+      </div>
 
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search coffee, burger, pizza..."
-        className="mt-4 h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-white outline-none ring-red-500/40 placeholder:text-zinc-500 focus:ring"
-      />
+      {/* Search + Filters */}
+      <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-3 shadow-[0_6px_20px_-12px_rgba(0,0,0,0.45)]">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-sm select-none">
+            ⌕
+          </span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search menu…"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] pl-8 pr-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-all duration-200 focus:border-[var(--border-warm)] focus:ring-2 focus:ring-[var(--accent-gold-soft)]"
+          />
+        </div>
 
-      <div className="sticky top-0 z-20 mt-4 space-y-3 bg-black/95 pb-3 pt-1 backdrop-blur">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {categories.map((category) => (
-            <button
+        {/* Category chips */}
+        <div className="mt-3 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <CategoryChip
+            active={activeCategory === ALL_CATEGORY}
+            label="All"
+            onClick={() => setActiveCategory(ALL_CATEGORY)}
+          />
+          {sortedCategories.map((category) => (
+            <CategoryChip
               key={category.id}
+              active={activeCategory === category.id}
+              label={category.name}
               onClick={() => setActiveCategory(category.id)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition ${
-                activeCategory === category.id
-                  ? "border-red-500 bg-red-600 text-white"
-                  : "border-zinc-700 bg-zinc-900 text-zinc-300"
-              }`}
-            >
-              {category.name}
-            </button>
+            />
           ))}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <FilterButton label="Veg" active={vegOnly} onClick={() => setVegOnly((v) => !v)} />
-          <FilterButton label="Non-veg" active={nonVegOnly} onClick={() => setNonVegOnly((v) => !v)} />
-          <FilterButton label="Bestseller" active={bestOnly} onClick={() => setBestOnly((v) => !v)} />
+        {/* Filter pills */}
+        <div className="mt-2 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <FilterButton
+            label="🌿 Veg"
+            active={vegOnly}
+            onClick={() => {
+              const next = !vegOnly;
+              setVegOnly(next);
+              if (next) setNonVegOnly(false);
+            }}
+          />
+          <FilterButton
+            label="🍗 Non-Veg"
+            active={nonVegOnly}
+            onClick={() => {
+              const next = !nonVegOnly;
+              setNonVegOnly(next);
+              if (next) setVegOnly(false);
+            }}
+          />
+          <FilterButton label="⭐ Bestseller" active={bestOnly} onClick={() => setBestOnly((prev) => !prev)} />
         </div>
       </div>
 
       {filteredItems.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-sm text-zinc-400">No menu items found.</div>
+        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-6 text-center">
+          <p className="text-sm text-[var(--text-secondary)]">No items match your filters.</p>
+        </div>
       ) : (
-        <div className="mt-2 space-y-3 pb-4">
+        <div className="mt-4 space-y-2.5 pb-4">
           {filteredItems.map((item) => {
             const qty = qtyById.get(item.id) ?? 0;
             return (
-              <article key={item.id} className="flex gap-3 rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-900">
-                  <Image
-                    src={item.image_url || "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500"}
-                    alt={item.name}
-                    fill
-                    sizes="96px"
-                    loading="lazy"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 text-sm font-semibold text-white">{item.name}</h3>
-                    <p className="shrink-0 text-sm font-semibold text-zinc-100">{formatCurrency(item.price)}</p>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-zinc-400">{item.description || "Freshly prepared."}</p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {item.is_veg ? <Badge label="Veg" tone="green" /> : null}
-                    {item.is_non_veg ? <Badge label="Non-veg" tone="amber" /> : null}
-                    {item.is_bestseller ? <Badge label="Bestseller" tone="red" /> : null}
-                  </div>
-                  <div className="mt-3">
-                    <QuantityStepper
-                      quantity={qty}
-                      onIncrease={() =>
-                        addItem({
-                          menuItemId: item.id,
-                          itemName: item.name,
-                          unitPrice: item.price,
-                          imageUrl: item.image_url,
-                        })
-                      }
-                      onDecrease={() => setQty(item.id, qty - 1)}
-                    />
-                  </div>
-                </div>
-              </article>
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                qty={qty}
+                onAdd={() =>
+                  addItem({
+                    menuItemId: item.id,
+                    itemName: item.name,
+                    unitPrice: item.price,
+                    imageUrl: item.uiImage,
+                  })
+                }
+                onDecrease={() => setQty(item.id, qty - 1)}
+              />
             );
           })}
         </div>
@@ -131,13 +143,111 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
   );
 }
 
+/* ─── Menu Item Card ─────────────────────────────────────────────────── */
+
+function MenuItemCard({
+  item,
+  qty,
+  onAdd,
+  onDecrease,
+}: {
+  item: MenuPresentationItem;
+  qty: number;
+  onAdd: () => void;
+  onDecrease: () => void;
+}) {
+  return (
+    <article className="group flex items-center gap-3 rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg-surface)] p-3 transition duration-200 hover:border-[var(--border-warm)] hover:shadow-[0_12px_36px_-18px_rgba(0,0,0,0.55)] hover:-translate-y-[0.5px]">
+      {/* Image */}
+      <div className="relative h-[80px] w-[80px] shrink-0 overflow-hidden rounded-3xl bg-[#1C140C] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),0_10px_24px_-16px_rgba(0,0,0,0.45)]">
+        <MenuItemImage src={item.uiImage} alt={item.name} categoryId={item.category_id} />
+      </div>
+
+      {/* Info */}
+      <div className="min-w-0 flex-1">
+        <h3 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)] leading-snug">{item.name}</h3>
+        {item.description ? (
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--text-secondary)] leading-relaxed">{item.description}</p>
+        ) : null}
+        <p className="mt-1 text-[15px] font-bold text-[var(--accent-gold)] tracking-tight">{formatCurrency(item.price)}</p>
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {item.uiIsVeg ? <Badge label="Veg" color="green" /> : null}
+          {item.uiIsNonVeg ? <Badge label="Non-Veg" color="red" /> : null}
+          {item.uiIsBestseller ? <Badge label="★ Top Pick" color="gold" /> : null}
+        </div>
+      </div>
+
+      {/* Qty stepper */}
+      <div className="shrink-0">
+        <QuantityStepper
+          quantity={qty}
+          onIncrease={onAdd}
+          onDecrease={onDecrease}
+        />
+      </div>
+    </article>
+  );
+}
+
+/* ─── Menu Item Image with fallback ────────────────────────────────────── */
+
+function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; categoryId: string }) {
+  const [imgSrc, setImgSrc] = useState(src);
+
+  const handleError = () => {
+    if (imgSrc !== MENU_DEFAULT_IMAGE) {
+      // Try to fall back to category image, then default
+      const fallback = resolveMenuImage({ id: "", name: "", category_id: categoryId, description: null, image_url: null, price: 0, is_veg: false, is_non_veg: false, is_bestseller: false, active: true });
+      setImgSrc(fallback !== src ? fallback : MENU_DEFAULT_IMAGE);
+    }
+  };
+
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      sizes="80px"
+      loading="lazy"
+      className="object-cover transition-transform duration-300 group-hover:scale-105"
+      onError={handleError}
+      unoptimized={imgSrc.startsWith("http")}
+    />
+  );
+}
+
+/* ─── Category Chip ──────────────────────────────────────────────────── */
+
+function CategoryChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
+        active
+          ? "border-[var(--accent-gold)] bg-[var(--bg-elevated)] text-[var(--accent-gold)] shadow-[0_0_8px_rgba(252,176,58,0.14)]"
+          : "border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
+      }`}
+    >
+      {label}
+      {active && (
+        <span className="absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-[var(--accent-gold)] transition-all duration-200" />
+      )}
+    </button>
+  );
+}
+
+/* ─── Filter Button ──────────────────────────────────────────────────── */
+
 function FilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition ${
-        active ? "bg-red-600 text-white" : "bg-zinc-900 text-zinc-400"
+      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+        active
+          ? "border-[var(--accent-gold)] bg-[var(--bg-elevated)] text-[var(--accent-gold)]"
+          : "border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
       }`}
     >
       {label}
@@ -145,12 +255,16 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
   );
 }
 
-function Badge({ label, tone }: { label: string; tone: "green" | "amber" | "red" }) {
-  const classes = {
-    green: "bg-emerald-900/40 text-emerald-300",
-    amber: "bg-amber-900/40 text-amber-300",
-    red: "bg-red-900/40 text-red-300",
+/* ─── Badge ──────────────────────────────────────────────────────────── */
+
+function Badge({ label, color }: { label: string; color: "green" | "red" | "gold" }) {
+  const styles = {
+    green: "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40",
+    red: "bg-red-950/60 text-red-400 border border-red-800/40",
+    gold: "bg-[var(--bg-primary)] text-[var(--accent-gold)] border border-[var(--border-warm)]",
   };
 
-  return <span className={`rounded-full px-2 py-1 text-[10px] ${classes[tone]}`}>{label}</span>;
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${styles[color]}`}>{label}</span>
+  );
 }

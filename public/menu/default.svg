@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="Cafe item">
+  <rect width="320" height="220" fill="#3D2B16"/>
+  <circle cx="160" cy="110" r="52" fill="#FCB03A"/>
+  <path d="M130 128h60" stroke="#2B2014" stroke-width="12" stroke-linecap="round"/>
+  <path d="M110 92h100" stroke="#2B2014" stroke-width="10" stroke-linecap="round"/>
+</svg>

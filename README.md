@@ -40,6 +40,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
+Use `.env.example` as a template for required Supabase credentials.
+
+Required values:
+
+1. `NEXT_PUBLIC_SUPABASE_URL` — your Supabase project URL
+2. `NEXT_PUBLIC_SUPABASE_ANON_KEY` — public anon key for read-only menu data
+3. `SUPABASE_SERVICE_ROLE_KEY` — secure server-side key for order writes
+
 ## Supabase setup
 
 Run SQL in order:

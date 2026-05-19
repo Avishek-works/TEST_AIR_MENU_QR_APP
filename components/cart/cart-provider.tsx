@@ -38,6 +38,37 @@ const emptyCart: StoredCart = {
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
+const sanitizeLineItem = (value: unknown): CartLineItem | null => {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<CartLineItem>;
+  if (!item.menuItemId || !item.itemName || typeof item.unitPrice !== "number") return null;
+  return {
+    menuItemId: item.menuItemId,
+    itemName: item.itemName,
+    unitPrice: item.unitPrice,
+    qty: typeof item.qty === "number" ? item.qty : 1,
+    imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : null,
+  };
+};
+
+const sanitizeStoredCart = (value: unknown): StoredCart => {
+  const parsed = (value && typeof value === "object" ? value : {}) as Partial<StoredCart>;
+  const rawItems = parsed.items && typeof parsed.items === "object" ? parsed.items : {};
+  const sanitizedItems: Record<string, CartLineItem> = {};
+
+  Object.entries(rawItems).forEach(([key, item]) => {
+    const sanitized = sanitizeLineItem(item);
+    if (sanitized) sanitizedItems[key] = sanitized;
+  });
+
+  return {
+    tableId: typeof parsed.tableId === "string" ? parsed.tableId : null,
+    notes: typeof parsed.notes === "string" ? parsed.notes : "",
+    customer: { ...defaultCustomer, ...(parsed.customer ?? {}) },
+    items: sanitizedItems,
+  };
+};
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<StoredCart>(emptyCart);
   const [hydrated, setHydrated] = useState(false);
@@ -50,13 +81,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const parsed = JSON.parse(raw) as StoredCart;
-      setCart({
-        tableId: parsed.tableId ?? null,
-        notes: parsed.notes ?? "",
-        customer: { ...defaultCustomer, ...(parsed.customer ?? {}) },
-        items: parsed.items ?? {},
-      });
+      setCart(sanitizeStoredCart(JSON.parse(raw)));
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -87,12 +112,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addItem: (item) =>
       setCart((current) => {
         const existing = current.items[item.menuItemId];
+        const safeItem = sanitizeLineItem({ ...item, qty: 1 });
+        if (!safeItem) return current;
         return {
           ...current,
           items: {
             ...current.items,
-            [item.menuItemId]: {
-              ...item,
+            [safeItem.menuItemId]: {
+              ...safeItem,
               qty: existing ? existing.qty + 1 : 1,
             },
           },
