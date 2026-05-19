@@ -3,8 +3,7 @@
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
 
-const REQUIRED_STATUS = "NEW";
-const REQUIRED_PAYMENT_STATUS = "UNPAID";
+const REQUIRED_STATUS = "PENDING";
 
 const sanitizeText = (value: string | undefined | null) => (value ?? "").trim();
 
@@ -13,14 +12,16 @@ const sanitizePhone = (value: string | undefined | null): string =>
 
 const isValidPhone = (phone: string): boolean => /^\d{10}$/.test(phone);
 
+const toSafeNumber = (value: unknown): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   try {
     const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
     const customerName = sanitizeText(input.customerName);
     const customerPhone = sanitizePhone(input.customerPhone);
-
-    const customerDobRaw = sanitizeText(input.customerDob);
-    const customerDob = customerDobRaw ? customerDobRaw : null;
 
     if (!tableNumber || !customerName || !customerPhone || input.items.length === 0) {
       console.log("[order] validation failed: missing required fields", {
@@ -39,136 +40,119 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Please enter a valid 10-digit phone number." };
     }
 
-    // DOB: native date input sends YYYY-MM-DD.
-    if (customerDob && !/^\d{4}-\d{2}-\d{2}$/.test(customerDob)) {
-      console.log("[order] validation failed: invalid DOB format");
-      return { ok: false, error: "Invalid date of birth format." };
-    }
-
-
     const normalizedItems = input.items
-      .filter((item) => item.qty > 0)
-      .map((item) => ({
-        menuItemId: item.menuItemId,
-        itemName: item.itemName,
-        qty: item.qty,
-        unitPrice: item.unitPrice,
-        totalPrice: item.qty * item.unitPrice,
-      }));
+      .map((item) => {
+        const quantity = Math.trunc(toSafeNumber(item.qty));
+        const price = toSafeNumber(item.unitPrice);
+        const total = quantity * price;
+        return {
+          productId: sanitizeText(item.menuItemId),
+          quantity,
+          price,
+          total,
+        };
+      })
+      .filter(
+        (item) =>
+          Boolean(item.productId) &&
+          Number.isFinite(item.quantity) &&
+          item.quantity > 0 &&
+          Number.isFinite(item.price) &&
+          item.price >= 0 &&
+          Number.isFinite(item.total) &&
+          item.total >= 0,
+      );
 
     if (!normalizedItems.length) {
       return { ok: false, error: "Cart is empty." };
     }
 
-    const subtotal = normalizedItems.reduce((acc, item) => acc + item.totalPrice, 0);
+    const totalAmount = normalizedItems.reduce((acc, item) => acc + item.total, 0);
+    const discount = 0;
+    const finalAmount = totalAmount - discount;
 
-
+    if (!Number.isFinite(totalAmount) || !Number.isFinite(finalAmount) || totalAmount < 0 || finalAmount < 0) {
+      return { ok: false, error: "Invalid order total. Please review your cart." };
+    }
 
     const supabase = createAdminSupabase();
 
-    if (input.clientToken) {
-      const { data: existing } = await supabase
-        .from("qr_orders")
-        .select("id")
-        .eq("client_order_token", input.clientToken)
-        .maybeSingle();
+    const billInsertPayload = {
+      walk_in_name: customerName,
+      walk_in_phone: customerPhone,
+      table_number: tableNumber,
+      total_amount: totalAmount,
+      discount,
+      final_amount: finalAmount,
+      status: REQUIRED_STATUS,
+    };
 
-      if (existing?.id) {
-        return { ok: true, orderId: existing.id };
-      }
-    }
-
-    const { data: table, error: tableError } = await supabase
-      .from("restaurant_tables")
-      .select("table_number")
-      .eq("table_number", tableNumber)
-      .eq("active", true)
-      .maybeSingle();
-
-    if (tableError || !table) {
-      return { ok: false, error: "Table is invalid or inactive." };
-    }
-
-    const { data: order, error: orderError } = await supabase
-      .from("qr_orders")
-      .insert({
-        table_number: tableNumber,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_email: sanitizeText(input.customerEmail) || null,
-        customer_dob: customerDob,
-        notes: sanitizeText(input.notes) || null,
-        subtotal,
-        total: subtotal,
-        status: REQUIRED_STATUS,
-        payment_status: REQUIRED_PAYMENT_STATUS,
-        client_order_token: sanitizeText(input.clientToken) || null,
-      })
+    const { data: bill, error: billError } = await supabase
+      .from("bills")
+      .insert(billInsertPayload)
       .select("id")
       .single();
 
-
-    if (orderError) {
-      console.error("[order] supabase insert qr_orders failed", {
-        code: orderError.code,
-        message: orderError.message,
-        details: (orderError as { details?: unknown }).details,
-        hint: (orderError as { hint?: unknown }).hint,
+    if (billError) {
+      console.error("[order] supabase insert bills failed", {
+        code: billError.code,
+        message: billError.message,
+        details: (billError as { details?: unknown }).details,
+        hint: (billError as { hint?: unknown }).hint,
+        payloadShape: {
+          ...billInsertPayload,
+          walk_in_name: Boolean(billInsertPayload.walk_in_name),
+          walk_in_phone_len: billInsertPayload.walk_in_phone.length,
+        },
       });
     }
 
-    if (orderError || !order) {
-
-      if (orderError?.code === "23505" && input.clientToken) {
-        const { data: existing } = await supabase
-          .from("qr_orders")
-          .select("id")
-          .eq("client_order_token", input.clientToken)
-          .single();
-
-        if (existing?.id) {
-          return { ok: true, orderId: existing.id };
-        }
-      }
-
+    if (billError || !bill) {
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
-    const { error: itemError } = await supabase.from("qr_order_items").insert(
-      normalizedItems.map((item) => ({
-        order_id: order.id,
-        menu_item_id: item.menuItemId,
-        item_name: item.itemName,
-        qty: item.qty,
-        unit_price: item.unitPrice,
-        total_price: item.totalPrice,
-      })),
-    );
+    const billItemPayload = normalizedItems.map((item) => ({
+      bill_id: bill.id,
+      product_id: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.total,
+    }));
+
+    const { error: itemError } = await supabase.from("bill_items").insert(billItemPayload);
 
     if (itemError) {
-      console.error("[order] supabase insert qr_order_items failed", {
+      console.error("[order] supabase insert bill_items failed", {
         code: itemError.code,
         message: itemError.message,
         details: (itemError as { details?: unknown }).details,
         hint: (itemError as { hint?: unknown }).hint,
+        payloadShape: {
+          billId: bill.id,
+          itemsCount: billItemPayload.length,
+          hasInvalidProductId: billItemPayload.some((item) => !item.product_id),
+        },
       });
 
-      await supabase.from("qr_orders").delete().eq("id", order.id);
+      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      if (rollbackError) {
+        console.error("[order] rollback delete bills failed", {
+          code: rollbackError.code,
+          message: rollbackError.message,
+        });
+      }
+
       return { ok: false, error: "Could not save order items. Please retry." };
     }
 
-
-    return { ok: true, orderId: order.id };
+    return { ok: true, orderId: bill.id };
   } catch (err) {
     console.error("[order] submit flow crashed", {
       message: err instanceof Error ? err.message : String(err),
-      // Do not log secrets; only high-level payload shape.
       input: {
         tableNumber: sanitizeText(input.tableNumber).toUpperCase(),
         customerPhoneLen: sanitizePhone(input.customerPhone).length,
-        hasCustomerEmail: Boolean(input.customerEmail),
-        hasCustomerDob: Boolean(input.customerDob),
-        hasNotes: Boolean(sanitizeText(input.notes)),
+        hasCustomerName: Boolean(sanitizeText(input.customerName)),
         itemsCount: input.items?.length ?? 0,
       },
       stack: err instanceof Error ? err.stack : undefined,
@@ -177,5 +161,3 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     return { ok: false, error: "Unable to submit order. Please try again." };
   }
 }
-
-
