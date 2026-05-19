@@ -15,10 +15,10 @@ export function CartPageView({ tableId }: { tableId: string }) {
         <h1 className="mt-2 text-2xl font-semibold text-[var(--brand-brown)]">Your cart</h1>
       </div>
 
-      <Link
-        href={`/order/table/${tableId}/menu`}
-        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--brand-white)] px-3 text-xs font-semibold text-[var(--muted)]"
-      >
+        <Link
+          href={`/order/table/${tableId}/menu`}
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--brand-white)] px-3 text-xs font-semibold text-[var(--muted)]"
+        >
         ← Add More Items
       </Link>
 
@@ -27,7 +27,7 @@ export function CartPageView({ tableId }: { tableId: string }) {
           <p className="text-sm text-[var(--muted)]">Your cart is empty.</p>
           <Link
             href={`/order/table/${tableId}/menu`}
-            className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-[var(--button-bg)] px-4 text-sm font-semibold text-[var(--brand-brown)]"
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--button-bg)] px-4 text-sm font-semibold text-[var(--brand-brown)]"
           >
             Browse Menu
           </Link>
@@ -66,7 +66,7 @@ export function CartPageView({ tableId }: { tableId: string }) {
             </label>
           </div>
 
-          <div className="sticky bottom-3 z-20 mt-4 rounded-2xl border border-[var(--border)] bg-[var(--brand-beige)] p-3 backdrop-blur">
+          <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-20 mt-4 rounded-2xl border border-[var(--border)] bg-[var(--brand-beige)] p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur">
             <div className="flex items-center justify-between text-sm text-[var(--muted)]">
               <span>Subtotal</span>
               <span>{formatCurrency(subtotal)}</span>

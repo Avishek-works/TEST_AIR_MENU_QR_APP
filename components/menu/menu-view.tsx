@@ -5,56 +5,13 @@ import { useMemo, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { formatCurrency } from "@/lib/format";
-import type { MenuCategory, MenuItem } from "@/lib/types";
+import { ALL_CATEGORY, enrichMenuItems } from "@/lib/menu-ui";
+import type { CategoryFilter, MenuCategory, RawMenuItem } from "@/lib/types";
 
 interface MenuViewProps {
   tableNumber: string;
   categories: MenuCategory[];
-  items: MenuItem[];
-}
-
-const ALL_CATEGORY = "__all__";
-const NON_VEG_KEYWORDS = ["chicken", "mutton", "fish", "egg", "prawn", "shrimp", "ham", "bacon", "sausage", "pepperoni"];
-const BESTSELLER_KEYWORDS = ["latte", "cappuccino", "espresso", "americano", "mocha", "cold coffee", "brownie", "croissant"];
-
-const NAME_IMAGE_RULES = [
-  { keywords: ["espresso", "americano"], image: "/menu/coffee-espresso.svg" },
-  { keywords: ["latte", "cappuccino", "mocha"], image: "/menu/coffee-latte.svg" },
-  { keywords: ["tea", "green tea", "masala"], image: "/menu/tea.svg" },
-  { keywords: ["croissant", "muffin", "pastry", "cake"], image: "/menu/bakery.svg" },
-  { keywords: ["sandwich", "burger", "wrap", "fries", "pasta"], image: "/menu/snacks.svg" },
-];
-
-const CATEGORY_IMAGE_RULES = [
-  { keys: ["coffee", "beverage"], image: "/menu/coffee-espresso.svg" },
-  { keys: ["tea"], image: "/menu/tea.svg" },
-  { keys: ["bakery", "dessert"], image: "/menu/bakery.svg" },
-  { keys: ["snack", "food", "starter", "meal"], image: "/menu/snacks.svg" },
-];
-
-function isNonVeg(name: string) {
-  const normalized = name.toLowerCase();
-  return NON_VEG_KEYWORDS.some((keyword) => normalized.includes(keyword));
-}
-
-function isBestseller(name: string) {
-  const normalized = name.toLowerCase();
-  return BESTSELLER_KEYWORDS.some((keyword) => normalized.includes(keyword));
-}
-
-function getMenuImage(item: MenuItem) {
-  const normalizedName = item.name.toLowerCase();
-  const normalizedCategory = item.category_id.toLowerCase();
-
-  for (const rule of NAME_IMAGE_RULES) {
-    if (rule.keywords.some((keyword) => normalizedName.includes(keyword))) return rule.image;
-  }
-
-  for (const rule of CATEGORY_IMAGE_RULES) {
-    if (rule.keys.some((key) => normalizedCategory.includes(key))) return rule.image;
-  }
-
-  return "/menu/default.svg";
+  items: RawMenuItem[];
 }
 
 export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
@@ -62,7 +19,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     () => [...categories].sort((a, b) => a.sort_order - b.sort_order),
     [categories],
   );
-  const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORY);
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>(ALL_CATEGORY);
   const [query, setQuery] = useState("");
   const [vegOnly, setVegOnly] = useState(false);
   const [nonVegOnly, setNonVegOnly] = useState(false);
@@ -75,20 +32,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     return map;
   }, [cartItems]);
 
-  const enrichedItems = useMemo(
-    () =>
-      items.map((item) => {
-        const nonVeg = isNonVeg(item.name);
-        return {
-          ...item,
-          uiIsNonVeg: nonVeg,
-          uiIsVeg: !nonVeg,
-          uiIsBestseller: isBestseller(item.name),
-          uiImage: getMenuImage(item),
-        };
-      }),
-    [items],
-  );
+  const enrichedItems = useMemo(() => enrichMenuItems(items), [items]);
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -120,7 +64,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
           className="w-full rounded-xl border border-[var(--border)] bg-[var(--brand-white)] px-3 py-2 text-sm text-[var(--brand-brown)] outline-none transition focus:border-[var(--muted)]"
         />
 
-        <div className="mt-3 flex gap-2 overflow-x-auto whitespace-nowrap pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-3 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <CategoryChip
             active={activeCategory === ALL_CATEGORY}
             label="All"
@@ -136,7 +80,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
           ))}
         </div>
 
-        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-2 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <FilterButton
             label="Veg"
             active={vegOnly}

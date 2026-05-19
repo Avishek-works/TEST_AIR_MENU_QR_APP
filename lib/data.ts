@@ -1,5 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
-import type { MenuCategory, MenuItem, RestaurantTable } from "@/lib/types";
+import type { MenuCategory, RawMenuItem, RestaurantTable } from "@/lib/types";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createPublicSupabase } from "@/lib/supabase/public";
 import { CLIENT_ID } from "@/lib/config";
@@ -20,7 +20,7 @@ export async function getActiveTable(tableId: string): Promise<RestaurantTable |
   return data;
 }
 
-export async function getMenuData(): Promise<{ categories: MenuCategory[]; items: MenuItem[] }> {
+export async function getMenuData(): Promise<{ categories: MenuCategory[]; items: RawMenuItem[] }> {
   noStore();
   const supabase = createPublicSupabase();
 
@@ -51,7 +51,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     is_non_veg: false,
     is_bestseller: false,
     active: product.is_active,
-  })) as MenuItem[];
+  })) as RawMenuItem[];
 
   const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
   const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
