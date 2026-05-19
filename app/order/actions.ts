@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { getConfiguredClientId } from "@/lib/config";
 import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
 
 const REQUIRED_STATUS = "PENDING";
@@ -75,9 +76,19 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Invalid order total. Please review your cart." };
     }
 
+    const clientId = getConfiguredClientId();
+
+    if (!clientId) {
+      console.error("[order] missing or invalid restaurant client_id configuration", {
+        tableNumber,
+      });
+      return { ok: false, error: "Restaurant configuration missing." };
+    }
+
     const supabase = createAdminSupabase();
 
     const billInsertPayload = {
+      client_id: clientId,
       walk_in_name: customerName,
       walk_in_phone: customerPhone,
       table_number: tableNumber,
