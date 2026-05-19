@@ -1,24 +1,9 @@
 import { unstable_noStore as noStore } from "next/cache";
-import type { MenuCategory, RawMenuItem, RestaurantTable } from "@/lib/types";
+import type { MenuCategory, RawMenuItem } from "@/lib/types";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createPublicSupabase } from "@/lib/supabase/public";
-import { CLIENT_ID } from "@/lib/config";
 
 export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
-
-export async function getActiveTable(tableId: string): Promise<RestaurantTable | null> {
-  noStore();
-  const supabase = createPublicSupabase();
-
-  const { data } = await supabase
-    .from("restaurant_tables")
-    .select("id,table_number,active")
-    .eq("table_number", tableId)
-    .eq("active", true)
-    .maybeSingle();
-
-  return data;
-}
 
 export async function getMenuData(): Promise<{ categories: MenuCategory[]; items: RawMenuItem[] }> {
   noStore();
@@ -26,9 +11,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
   const { data: products, error } = await supabase
     .from("products")
-    .select("id, name, price, type, client_id, is_active")
-    .eq("client_id", CLIENT_ID)
-    .eq("is_active", true)
+    .select("id, name, price, type")
     .order("name");
 
   if (error) {
@@ -50,7 +33,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     is_veg: false,
     is_non_veg: false,
     is_bestseller: false,
-    active: product.is_active,
+    active: true,
   })) as RawMenuItem[];
 
   const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
@@ -64,8 +47,8 @@ export async function getOrderDetails(orderId: string) {
   const supabase = createAdminSupabase();
 
   const { data, error } = await supabase
-    .from("qr_orders")
-    .select("id,table_number,total")
+    .from("bills")
+    .select("id,table_number,final_amount")
     .eq("id", orderId)
     .maybeSingle();
 

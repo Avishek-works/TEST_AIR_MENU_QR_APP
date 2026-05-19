@@ -63,7 +63,7 @@ export default async function SuccessPage({
             <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-2">
               <span className="text-sm font-medium text-[var(--text-secondary)]">Total</span>
               <span className="text-lg font-bold text-[var(--accent-gold)]">
-                {order.total.toLocaleString("en-IN", { style: "currency", currency: "INR" })}
+                {Number(order.final_amount || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" })}
               </span>
             </div>
           </div>
