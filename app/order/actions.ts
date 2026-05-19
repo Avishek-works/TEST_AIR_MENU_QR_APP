@@ -3,7 +3,7 @@
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getConfiguredClientId } from "@/lib/config";
 import { getOrderNotesSupport } from "@/lib/order-capabilities";
-import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
+import type { CustomerLookupResult, PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
 
 const REQUIRED_STATUS = "PENDING";
 
@@ -21,6 +21,52 @@ const toSafeNumber = (value: unknown): number => {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : NaN;
 };
+
+export async function lookupCustomerByPhoneAction(phone: string): Promise<CustomerLookupResult> {
+  try {
+    const sanitizedPhone = sanitizePhone(phone);
+
+    if (!isValidPhone(sanitizedPhone)) {
+      return { found: false };
+    }
+
+    const clientId = getConfiguredClientId();
+    if (!clientId) {
+      return { found: false };
+    }
+
+    const supabase = createAdminSupabase();
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id,name")
+      .eq("client_id", clientId)
+      .eq("phone", sanitizedPhone)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) {
+        console.error("[order] customer lookup failed", {
+          code: error.code,
+          message: error.message,
+        });
+      }
+      return { found: false };
+    }
+
+    return {
+      found: true,
+      customer: {
+        id: data.id,
+        name: sanitizeText(data.name),
+      },
+    };
+  } catch (error) {
+    console.error("[order] customer lookup crashed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return { found: false };
+  }
+}
 
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   try {

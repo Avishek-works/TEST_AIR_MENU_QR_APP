@@ -57,3 +57,12 @@ export interface PlaceOrderResult {
   orderId?: string;
   error?: string;
 }
+
+
+export interface CustomerLookupResult {
+  found: boolean;
+  customer?: {
+    id: string;
+    name: string;
+  };
+}
