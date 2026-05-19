@@ -73,6 +73,16 @@ export const IMAGE_BY_CATEGORY: MenuImageByCategoryMap = {
   meal: "/menu/snacks.svg",
 };
 
+const CATEGORY_ORDER_RULES = [
+  ["coffee", "espresso", "cappuccino", "latte", "mocha", "americano"],
+  ["tea"],
+  ["cold", "frappe", "iced", "mocktail", "shake", "smoothie", "slush", "beverage", "cooler", "juice"],
+  ["small bites", "snack", "starter", "burger", "sandwich", "wrap", "fries"],
+  ["pizza"],
+  ["pasta"],
+  ["dessert", "bakery", "sweet", "cake", "pastry"],
+] as const;
+
 function normalizeForKeywordCheck(text: string) {
   return text.toLowerCase().replace(NON_ALPHANUMERIC, " ").trim();
 }
@@ -89,6 +99,33 @@ export function hasKeyword(text: string, keywords: readonly string[]) {
     const pattern = new RegExp(`(^|\\s)${normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`);
     return pattern.test(normalizedText);
   });
+}
+
+export function toTitleCaseLabel(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match) => match.toUpperCase());
+}
+
+export function sortCategoryNames(categoryNames: string[]) {
+  return [...categoryNames].sort((left, right) => {
+    const leftRank = getCategoryRank(left);
+    const rightRank = getCategoryRank(right);
+
+    if (leftRank !== rightRank) return leftRank - rightRank;
+
+    return categoryNames.indexOf(left) - categoryNames.indexOf(right);
+  });
+}
+
+function getCategoryRank(categoryName: string) {
+  const normalizedCategory = normalizeForKeywordCheck(categoryName);
+  const matchingIndex = CATEGORY_ORDER_RULES.findIndex((keywords) =>
+    keywords.some((keyword) => normalizedCategory.includes(normalizeForKeywordCheck(keyword))),
+  );
+
+  return matchingIndex === -1 ? CATEGORY_ORDER_RULES.length : matchingIndex;
 }
 
 export function resolveMenuImage(item: RawMenuItem) {

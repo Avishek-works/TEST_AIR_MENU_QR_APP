@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { formatCurrency } from "@/lib/format";
+import { toTitleCaseLabel } from "@/lib/menu-ui";
 
-export function CartPageView({ tableId }: { tableId: string }) {
+export function CartPageView({ tableId, allowOrderNotes }: { tableId: string; allowOrderNotes: boolean }) {
   const { items, subtotal, notes, setNotes, setQty } = useCart();
 
   return (
@@ -43,7 +44,7 @@ export function CartPageView({ tableId }: { tableId: string }) {
               {items.map((item) => (
                 <article key={item.menuItemId} className="flex items-center gap-3 p-3.5">
                   <div className="min-w-0 flex-1">
-                    <h2 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)]">{item.itemName}</h2>
+                    <h2 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)]">{toTitleCaseLabel(item.itemName)}</h2>
                     <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{formatCurrency(item.unitPrice)} each</p>
                     <p className="mt-0.5 text-sm font-bold text-[var(--accent-gold)]">{formatCurrency(item.qty * item.unitPrice)}</p>
                   </div>
@@ -58,16 +59,19 @@ export function CartPageView({ tableId }: { tableId: string }) {
               ))}
             </div>
 
-            <label className="block border-t border-[var(--border)] p-3.5 text-xs font-medium text-[var(--text-secondary)]">
-              Order notes (optional)
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Less sugar, extra hot, no onion…"
-                className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-all duration-200 focus:border-[var(--border-warm)] focus:ring-2 focus:ring-[var(--accent-gold-soft)] resize-none"
-              />
-            </label>
+            {allowOrderNotes ? (
+              <label className="block border-t border-[var(--border)] p-3.5 text-xs font-medium text-[var(--text-secondary)]">
+                Order notes (optional)
+                <textarea
+                  rows={2}
+                  maxLength={280}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Less sugar, extra hot, no onion…"
+                  className="mt-2 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-all duration-200 focus:border-[var(--border-warm)] focus:ring-2 focus:ring-[var(--accent-gold-soft)]"
+                />
+              </label>
+            ) : null}
           </div>
 
           {/* Sticky checkout */}

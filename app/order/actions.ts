@@ -2,6 +2,7 @@
 
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getConfiguredClientId } from "@/lib/config";
+import { getOrderNotesSupport } from "@/lib/order-capabilities";
 import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
 
 const REQUIRED_STATUS = "PENDING";
@@ -10,6 +11,9 @@ const sanitizeText = (value: string | undefined | null) => (value ?? "").trim();
 
 const sanitizePhone = (value: string | undefined | null): string =>
   sanitizeText(value).replace(/\D+/g, "").slice(0, 10);
+
+const sanitizeOrderNotes = (value: string | undefined | null): string =>
+  sanitizeText(value).replace(/\s+/g, " ").slice(0, 280);
 
 const isValidPhone = (phone: string): boolean => /^\d{10}$/.test(phone);
 
@@ -23,6 +27,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
     const customerName = sanitizeText(input.customerName);
     const customerPhone = sanitizePhone(input.customerPhone);
+    const orderNotes = sanitizeOrderNotes(input.notes);
 
     if (!tableNumber || !customerName || !customerPhone || input.items.length === 0) {
       console.log("[order] validation failed: missing required fields", {
@@ -86,8 +91,9 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     }
 
     const supabase = createAdminSupabase();
+    const orderNotesSupport = await getOrderNotesSupport();
 
-    const billInsertPayload = {
+    const billInsertPayload: Record<string, string | number> = {
       client_id: clientId,
       walk_in_name: customerName,
       walk_in_phone: customerPhone,
@@ -97,6 +103,10 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       final_amount: finalAmount,
       status: REQUIRED_STATUS,
     };
+
+    if (orderNotesSupport.columnName && orderNotes) {
+      billInsertPayload[orderNotesSupport.columnName] = orderNotes;
+    }
 
     const { data: bill, error: billError } = await supabase
       .from("bills")
@@ -113,7 +123,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         payloadShape: {
           ...billInsertPayload,
           walk_in_name: Boolean(billInsertPayload.walk_in_name),
-          walk_in_phone_len: billInsertPayload.walk_in_phone.length,
+          walk_in_phone_len: String(billInsertPayload.walk_in_phone ?? "").length,
         },
       });
     }
