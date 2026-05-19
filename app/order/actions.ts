@@ -12,10 +12,31 @@ const sanitizeText = (value: string | undefined | null) => (value ?? "").trim();
 const sanitizePhone = (value: string | undefined | null): string =>
   sanitizeText(value).replace(/\D+/g, "").slice(0, 10);
 
+const sanitizeEmail = (value: string | undefined | null): string => sanitizeText(value).toLowerCase().slice(0, 254);
+
 const sanitizeOrderNotes = (value: string | undefined | null): string =>
   sanitizeText(value).replace(/\s+/g, " ").slice(0, 280);
 
 const isValidPhone = (phone: string): boolean => /^\d{10}$/.test(phone);
+const isValidEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const normalizeDob = (value: string | undefined | null): string | null => {
+  const normalized = sanitizeText(value);
+  if (!normalized) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null;
+
+  const parsed = new Date(`${normalized}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const isoDate = parsed.toISOString().slice(0, 10);
+  if (isoDate !== normalized) return null;
+
+  const today = new Date();
+  const maxDate = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, "0")}-${`${today.getDate()}`.padStart(2, "0")}`;
+  if (normalized > maxDate) return null;
+
+  return normalized;
+};
 
 const toSafeNumber = (value: unknown): number => {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -38,7 +59,7 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
     const supabase = createAdminSupabase();
     const { data, error } = await supabase
       .from("customers")
-      .select("id,name")
+      .select("id,name,email,dob")
       .eq("client_id", clientId)
       .eq("phone", sanitizedPhone)
       .maybeSingle();
@@ -58,6 +79,8 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
       customer: {
         id: data.id,
         name: sanitizeText(data.name),
+        email: sanitizeEmail(data.email),
+        dob: sanitizeText(data.dob),
       },
     };
   } catch (error) {
@@ -71,14 +94,16 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   try {
     const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
-    const customerName = sanitizeText(input.customerName);
     const customerPhone = sanitizePhone(input.customerPhone);
+    const customerName = sanitizeText(input.customerName);
+    const customerEmail = sanitizeEmail(input.customerEmail);
+    const customerDobRaw = sanitizeText(input.customerDob);
+    const customerDob = normalizeDob(customerDobRaw);
     const orderNotes = sanitizeOrderNotes(input.notes);
 
-    if (!tableNumber || !customerName || !customerPhone || input.items.length === 0) {
+    if (!tableNumber || !customerPhone || input.items.length === 0) {
       console.log("[order] validation failed: missing required fields", {
         hasTableNumber: Boolean(tableNumber),
-        hasCustomerName: Boolean(customerName),
         hasCustomerPhone: Boolean(customerPhone),
         itemsCount: input.items?.length ?? 0,
       });
@@ -90,6 +115,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         customerPhonePreview: customerPhone ? "***10digits" : null,
       });
       return { ok: false, error: "Please enter a valid 10-digit phone number." };
+    }
+
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      return { ok: false, error: "Please enter a valid email address." };
+    }
+
+    if (customerDobRaw && !customerDob) {
+      return { ok: false, error: "Please enter a valid date of birth." };
     }
 
     const normalizedItems = input.items
@@ -138,11 +171,111 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
     const supabase = createAdminSupabase();
     const orderNotesSupport = await getOrderNotesSupport();
+    let createdCustomerId: string | null = null;
+
+    const cleanupCreatedCustomer = async (reason: string) => {
+      if (!createdCustomerId) {
+        return;
+      }
+
+      const { error: customerRollbackError } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", createdCustomerId)
+        .eq("client_id", clientId);
+
+      if (customerRollbackError) {
+        console.error("[order] rollback delete customer failed", {
+          reason,
+          customerId: createdCustomerId,
+          code: customerRollbackError.code,
+          message: customerRollbackError.message,
+        });
+      }
+    };
+
+    const { data: existingCustomer, error: existingCustomerError } = await supabase
+      .from("customers")
+      .select("id,name,email,dob")
+      .eq("client_id", clientId)
+      .eq("phone", customerPhone)
+      .maybeSingle();
+
+    if (existingCustomerError) {
+      console.error("[order] customer lookup for placement failed", {
+        code: existingCustomerError.code,
+        message: existingCustomerError.message,
+      });
+      return { ok: false, error: "Could not verify customer details. Please try again." };
+    }
+
+    let resolvedCustomerId = existingCustomer?.id ?? null;
+
+    if (!resolvedCustomerId) {
+      if (!customerName) {
+        return { ok: false, error: "Name is required for new customers." };
+      }
+
+      const customerInsertPayload: Record<string, string | boolean> = {
+        client_id: clientId,
+        name: customerName,
+        phone: customerPhone,
+        is_active: true,
+      };
+
+      if (customerEmail) {
+        customerInsertPayload.email = customerEmail;
+      }
+
+      if (customerDob) {
+        customerInsertPayload.dob = customerDob;
+      }
+
+      const { data: createdCustomer, error: createCustomerError } = await supabase
+        .from("customers")
+        .insert(customerInsertPayload)
+        .select("id")
+        .single();
+
+      if (createCustomerError || !createdCustomer) {
+        if (createCustomerError?.code === "23505") {
+          const { data: fetchedAfterConflict, error: fetchAfterConflictError } = await supabase
+            .from("customers")
+            .select("id")
+            .eq("client_id", clientId)
+            .eq("phone", customerPhone)
+            .maybeSingle();
+
+          if (fetchAfterConflictError || !fetchedAfterConflict) {
+            console.error("[order] customer re-fetch failed after duplicate conflict", {
+              conflictCode: createCustomerError.code,
+              fetchCode: fetchAfterConflictError?.code,
+              fetchMessage: fetchAfterConflictError?.message,
+            });
+            return { ok: false, error: "Could not resolve customer profile. Please retry." };
+          }
+
+          resolvedCustomerId = fetchedAfterConflict.id;
+        } else {
+          console.error("[order] customer creation failed", {
+            code: createCustomerError?.code,
+            message: createCustomerError?.message,
+          });
+          return { ok: false, error: "Could not save customer details. Please retry." };
+        }
+      } else {
+        resolvedCustomerId = createdCustomer.id;
+        createdCustomerId = createdCustomer.id;
+      }
+    }
+
+    if (!resolvedCustomerId) {
+      return { ok: false, error: "Could not resolve customer profile. Please retry." };
+    }
 
     const billInsertPayload: Record<string, string | number> = {
       client_id: clientId,
-      walk_in_name: customerName,
-      walk_in_phone: customerPhone,
+      customer_id: resolvedCustomerId,
       table_number: tableNumber,
       total_amount: totalAmount,
       discount,
@@ -168,13 +301,13 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         hint: (billError as { hint?: unknown }).hint,
         payloadShape: {
           ...billInsertPayload,
-          walk_in_name: Boolean(billInsertPayload.walk_in_name),
-          walk_in_phone_len: String(billInsertPayload.walk_in_phone ?? "").length,
+          hasCustomerId: Boolean(billInsertPayload.customer_id),
         },
       });
     }
 
     if (billError || !bill) {
+      await cleanupCreatedCustomer("bill_insert_failed");
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
@@ -193,6 +326,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         });
       }
 
+      await cleanupCreatedCustomer("bill_client_mismatch");
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
@@ -227,6 +361,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         });
       }
 
+      await cleanupCreatedCustomer("bill_items_insert_failed");
       return { ok: false, error: "Could not save order items. Please retry." };
     }
 
