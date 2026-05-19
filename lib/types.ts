@@ -10,7 +10,7 @@ export interface MenuCategory {
   sort_order: number;
 }
 
-export interface MenuItem {
+export interface RawMenuItem {
   id: string;
   category_id: string;
   name: string;
@@ -22,6 +22,18 @@ export interface MenuItem {
   is_bestseller: boolean;
   active: boolean;
 }
+
+export interface MenuPresentationItem extends RawMenuItem {
+  uiIsVeg: boolean;
+  uiIsNonVeg: boolean;
+  uiIsBestseller: boolean;
+  uiImage: string;
+}
+
+export type CategoryFilter = "__all__" | string;
+export type MenuImageByIdMap = Record<string, string>;
+export type MenuImageBySlugMap = Record<string, string>;
+export type MenuImageByCategoryMap = Record<string, string>;
 
 export interface CartLineItem {
   menuItemId: string;

@@ -13,7 +13,7 @@ export default async function TableLayout({
   return (
     <>
       <TableSession tableId={tableId} />
-      <div className="pb-24">{children}</div>
+      <div className="pb-[calc(6rem+env(safe-area-inset-bottom))]">{children}</div>
       <StickyCartBar tableId={tableId} />
     </>
   );

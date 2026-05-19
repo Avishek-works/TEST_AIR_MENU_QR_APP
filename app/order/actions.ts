@@ -20,7 +20,13 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
   const normalizedItems = input.items
     .filter((item) => item.qty > 0)
-    .map((item) => ({ ...item, totalPrice: item.qty * item.unitPrice }));
+    .map((item) => ({
+      menuItemId: item.menuItemId,
+      itemName: item.itemName,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+      totalPrice: item.qty * item.unitPrice,
+    }));
 
   if (!normalizedItems.length) {
     return { ok: false, error: "Cart is empty." };

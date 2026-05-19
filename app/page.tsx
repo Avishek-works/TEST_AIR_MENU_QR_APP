@@ -39,7 +39,7 @@ export default function Home() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="submit"
-                className="inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 font-semibold text-[var(--brand-white)] transition hover:brightness-95"
+                className="inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
                 style={{ boxShadow: '0 8px 20px rgba(74,44,33,0.12)' }}
               >
                 Start Ordering

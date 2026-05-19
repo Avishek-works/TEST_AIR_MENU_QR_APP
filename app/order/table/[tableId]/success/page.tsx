@@ -18,7 +18,7 @@ export default async function SuccessPage({
         <section className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-8 shadow-[0_35px_90px_-42px_rgba(74,44,33,0.04)]">
           <h1 className="text-2xl font-semibold text-[var(--brand-brown)]">Order not found</h1>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">No order reference was provided. Return to the menu to restart your order.</p>
-          <Link href={`/order/table/${normalizedTable}/menu`} className="mt-8 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 text-sm font-semibold text-[var(--brand-white)] transition hover:brightness-95">
+          <Link href={`/order/table/${normalizedTable}/menu`} className="mt-8 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95">
             Back to menu
           </Link>
         </section>
@@ -34,7 +34,7 @@ export default async function SuccessPage({
           <section className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-8 shadow-[0_35px_90px_-42px_rgba(74,44,33,0.04)]">
             <h1 className="text-2xl font-semibold text-[var(--brand-brown)]">Order lookup failed</h1>
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">We could not verify your order. Please return to the menu and try again.</p>
-            <Link href={`/order/table/${normalizedTable}/menu`} className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 text-sm font-semibold text-[var(--brand-white)] transition hover:brightness-95">
+            <Link href={`/order/table/${normalizedTable}/menu`} className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95">
               Back to menu
             </Link>
           </section>
@@ -55,7 +55,7 @@ export default async function SuccessPage({
             <p className="mt-2 text-[var(--muted)]">Table {order.table_number}</p>
             <p className="mt-2 font-semibold text-[var(--brand-brown)]">Total {order.total.toLocaleString("en-IN", { style: "currency", currency: "INR" })}</p>
           </div>
-          <Link href={`/order/table/${normalizedTable}/menu`} className="mt-8 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 text-sm font-semibold text-[var(--brand-white)] transition hover:brightness-95">
+          <Link href={`/order/table/${normalizedTable}/menu`} className="mt-8 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95">
             Order More
           </Link>
         </section>
@@ -67,7 +67,7 @@ export default async function SuccessPage({
         <section className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-8 shadow-[0_35px_90px_-42px_rgba(74,44,33,0.04)]">
           <h1 className="text-2xl font-semibold text-[var(--brand-brown)]">Order lookup failed</h1>
           <p className="mt-3 text-sm leading-6 text-[var(--muted)]">We could not verify your order. Please return to the menu and try again.</p>
-          <Link href={`/order/table/${normalizedTable}/menu`} className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 text-sm font-semibold text-[var(--brand-white)] transition hover:brightness-95">
+          <Link href={`/order/table/${normalizedTable}/menu`} className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95">
             Back to menu
           </Link>
         </section>
