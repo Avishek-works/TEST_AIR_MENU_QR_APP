@@ -10,50 +10,55 @@ export default function Home() {
   const normalizedTable = useMemo(() => table.trim().toUpperCase(), [table]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
-      <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--brand-beige)] p-6 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.08)] backdrop-blur-sm">
-        <div className="rounded-[1.75rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-6 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.04)]">
-          <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Cafe Coffee Aroma</p>
-          <h1 className="mt-4 text-4xl font-semibold text-[var(--brand-brown)] sm:text-5xl">Welcome to our cozy corner.</h1>
-          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            Place your order from the table and enjoy premium coffee, pastries and handcrafted bites.
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-8">
+      <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--brand-beige)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.65)]">
+        {/* Brand mark */}
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">☕</span>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--gold)] opacity-90">
+            Cafe Coffee Aroma
           </p>
-
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              router.push(`/order/table/${normalizedTable}/menu`);
-            }}
-            className="mt-6 space-y-4"
-          >
-            <label className="block text-sm text-[var(--muted)]">
-              Table Number
-              <input
-                value={table}
-                onChange={(event) => setTable(event.target.value)}
-                placeholder="T1"
-                className="mt-3 w-full rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 py-3 text-base text-[var(--brand-brown)] outline-none transition focus:border-[var(--brand-brown)] focus:ring-2 focus:ring-[var(--brand-brown-opaque)]"
-              />
-            </label>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="submit"
-                className="inline-flex min-h-[3rem] flex-1 items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
-                style={{ boxShadow: '0 8px 20px rgba(74,44,33,0.12)' }}
-              >
-                Start Ordering
-              </button>
-              <Link
-                href="/order/table/T1/menu"
-                className="inline-flex min-h-[3rem] items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 text-sm font-medium text-[var(--brand-brown)] transition hover:border-[var(--brand-brown)]"
-                style={{ boxShadow: '0 6px 18px rgba(74,44,33,0.06)' }}
-              >
-                Explore Menu
-              </Link>
-            </div>
-          </form>
         </div>
+
+        <h1 className="mt-4 text-3xl font-bold text-[var(--brand-brown)] leading-snug tracking-tight sm:text-4xl">
+          Welcome to our<br />cozy corner.
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+          Premium coffee, handcrafted pastries, and warm bites — ordered right from your table.
+        </p>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            router.push(`/order/table/${normalizedTable}/menu`);
+          }}
+          className="mt-6 space-y-4"
+        >
+          <label className="block">
+            <span className="text-xs font-medium text-[var(--muted)]">Table Number</span>
+            <input
+              value={table}
+              onChange={(event) => setTable(event.target.value)}
+              placeholder="T1"
+              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 py-3 text-base text-[var(--brand-brown)] placeholder:text-[var(--muted)] outline-none transition-all duration-200 focus:border-[var(--gold-border)] focus:ring-2 focus:ring-[var(--gold-soft)]"
+            />
+          </label>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              className="btn-gold inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl px-5 text-sm font-bold shadow-[0_4px_18px_rgba(252,176,58,0.30)] tracking-wide"
+            >
+              Start Ordering →
+            </button>
+            <Link
+              href="/order/table/T1/menu"
+              className="btn-ghost inline-flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-5 text-sm font-medium text-[var(--muted)] hover:border-[var(--border-warm)] hover:text-[var(--brand-brown)]"
+            >
+              Explore Menu
+            </Link>
+          </div>
+        </form>
       </div>
     </main>
   );
