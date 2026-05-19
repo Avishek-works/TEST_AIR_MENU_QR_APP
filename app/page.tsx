@@ -11,19 +11,19 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-8">
-      <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--brand-beige)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.65)]">
+      <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
         {/* Brand mark */}
         <div className="flex items-center gap-2">
           <span className="text-2xl">☕</span>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--gold)] opacity-90">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">
             Cafe Coffee Aroma
           </p>
         </div>
 
-        <h1 className="mt-4 text-3xl font-bold text-[var(--brand-brown)] leading-snug tracking-tight sm:text-4xl">
+        <h1 className="mt-4 text-3xl font-bold text-[var(--text-primary)] leading-snug tracking-tight sm:text-4xl">
           Welcome to our<br />cozy corner.
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+        <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
           Premium coffee, handcrafted pastries, and warm bites — ordered right from your table.
         </p>
 
@@ -35,12 +35,12 @@ export default function Home() {
           className="mt-6 space-y-4"
         >
           <label className="block">
-            <span className="text-xs font-medium text-[var(--muted)]">Table Number</span>
+            <span className="text-xs font-medium text-[var(--text-secondary)]">Table Number</span>
             <input
               value={table}
               onChange={(event) => setTable(event.target.value)}
               placeholder="T1"
-              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-4 py-3 text-base text-[var(--brand-brown)] placeholder:text-[var(--muted)] outline-none transition-all duration-200 focus:border-[var(--gold-border)] focus:ring-2 focus:ring-[var(--gold-soft)]"
+              className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-all duration-200 focus:border-[var(--border-warm)] focus:ring-2 focus:ring-[var(--accent-gold-soft)]"
             />
           </label>
 
@@ -53,7 +53,7 @@ export default function Home() {
             </button>
             <Link
               href="/order/table/T1/menu"
-              className="btn-ghost inline-flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--brand-white)] px-5 text-sm font-medium text-[var(--muted)] hover:border-[var(--border-warm)] hover:text-[var(--brand-brown)]"
+              className="btn-ghost inline-flex min-h-12 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-5 text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
             >
               Explore Menu
             </Link>

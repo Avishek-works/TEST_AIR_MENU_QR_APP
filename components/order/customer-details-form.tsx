@@ -59,10 +59,10 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
   return (
     <section>
       {/* Header */}
-      <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--brand-beige)] p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.45)]">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--gold)] opacity-80">Checkout</p>
-        <h1 className="mt-1.5 text-2xl font-semibold text-[var(--brand-brown)] tracking-tight">Your details</h1>
-        <p className="mt-1 text-xs text-[var(--muted)]">A few details to complete your order.</p>
+      <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.55)]">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">Checkout</p>
+        <h1 className="mt-1.5 text-2xl font-semibold text-[var(--text-primary)] tracking-tight">Your details</h1>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">A few details to complete your order.</p>
       </div>
 
       <form onSubmit={placeOrder} className="mt-5 space-y-4">
@@ -93,13 +93,13 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
           placeholder="YYYY-MM-DD"
         />
 
-        <p className="text-xs text-[var(--muted)]">Share your birthday for special treats and offers.</p>
+        <p className="text-xs text-[var(--text-secondary)]">Share your birthday for special treats and offers.</p>
 
         {/* Order total */}
-        <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--brand-beige)] p-4">
+        <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--bg-elevated)] p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[var(--muted)]">Order total</span>
-            <span className="text-xl font-bold text-[var(--gold)] tracking-tight">₹{subtotal.toFixed(2)}</span>
+            <span className="text-sm text-[var(--text-secondary)]">Order total</span>
+            <span className="text-xl font-bold text-[var(--accent-gold)] tracking-tight">₹{subtotal.toFixed(2)}</span>
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
 
         <Link
           href={`/order/table/${tableId}/cart`}
-          className="btn-ghost inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--brand-beige)] px-4 text-sm font-medium text-[var(--muted)] hover:border-[var(--border-warm)] hover:text-[var(--brand-brown)]"
+          className="btn-ghost inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
         >
           ← Back to cart
         </Link>
@@ -141,13 +141,13 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-xs font-medium text-[var(--muted)]">{label}</span>
+      <span className="text-xs font-medium text-[var(--text-secondary)]">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--brand-beige)] px-4 py-3 text-sm text-[var(--brand-brown)] placeholder:text-[var(--muted)] outline-none transition-all duration-200 focus:border-[var(--gold-border)] focus:ring-2 focus:ring-[var(--gold-soft)]"
+        className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-all duration-200 focus:border-[var(--border-warm)] focus:ring-2 focus:ring-[var(--accent-gold-soft)]"
       />
     </label>
   );
