@@ -101,7 +101,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     const { data: bill, error: billError } = await supabase
       .from("bills")
       .insert(billInsertPayload)
-      .select("id")
+      .select("id,client_id")
       .single();
 
     if (billError) {
@@ -119,6 +119,24 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     }
 
     if (billError || !bill) {
+      return { ok: false, error: "Could not place order. Please try again." };
+    }
+
+    if (bill.client_id !== clientId) {
+      console.error("[order] inserted bill missing expected client_id", {
+        billId: bill.id,
+        expectedClientId: clientId,
+        actualClientId: bill.client_id,
+      });
+
+      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      if (rollbackError) {
+        console.error("[order] rollback delete bills failed after client_id mismatch", {
+          code: rollbackError.code,
+          message: rollbackError.message,
+        });
+      }
+
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
