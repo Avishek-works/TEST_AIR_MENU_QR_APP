@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { getConfiguredClientId } from "@/lib/config";
 import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
 
 const REQUIRED_STATUS = "PENDING";
@@ -75,9 +76,19 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Invalid order total. Please review your cart." };
     }
 
+    const clientId = getConfiguredClientId();
+
+    if (!clientId) {
+      console.error("[order] missing or invalid restaurant client_id configuration", {
+        tableNumber,
+      });
+      return { ok: false, error: "Restaurant configuration missing." };
+    }
+
     const supabase = createAdminSupabase();
 
     const billInsertPayload = {
+      client_id: clientId,
       walk_in_name: customerName,
       walk_in_phone: customerPhone,
       table_number: tableNumber,
@@ -90,7 +101,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     const { data: bill, error: billError } = await supabase
       .from("bills")
       .insert(billInsertPayload)
-      .select("id")
+      .select("id,client_id")
       .single();
 
     if (billError) {
@@ -108,6 +119,24 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     }
 
     if (billError || !bill) {
+      return { ok: false, error: "Could not place order. Please try again." };
+    }
+
+    if (bill.client_id !== clientId) {
+      console.error("[order] inserted bill missing expected client_id", {
+        billId: bill.id,
+        expectedClientId: clientId,
+        actualClientId: bill.client_id,
+      });
+
+      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      if (rollbackError) {
+        console.error("[order] rollback delete bills failed after client_id mismatch", {
+          code: rollbackError.code,
+          message: rollbackError.message,
+        });
+      }
+
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
