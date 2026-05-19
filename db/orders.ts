@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PostgrestError } from "@supabase/supabase-js";
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { createPublicSupabase } from "@/lib/supabase/public";
 
 export interface BillItemInsertInput {
   billId: string;
@@ -33,6 +34,6 @@ export async function createBillItems(items: BillItemInsertInput[]): Promise<{ e
 }
 
 export async function listProductsForMenu(): Promise<{ data: ProductRecord[] | null; error: PostgrestError | null }> {
-  const adminSupabase = createAdminSupabase();
-  return adminSupabase.from("products").select("id,name,price,type");
+  const publicSupabase = createPublicSupabase();
+  return publicSupabase.from("products").select("id,name,price,type");
 }
