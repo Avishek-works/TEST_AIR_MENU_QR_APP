@@ -7,20 +7,23 @@ export default async function TablePage({ params }: { params: Promise<{ tableId:
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
-      <section className="rounded-[2rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-white)] p-6 shadow-[0_30px_70px_-36px_rgba(74,44,33,0.04)] backdrop-blur-sm">
-        <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted)]">Cafe Coffee Aroma</p>
-        <h1 className="mt-4 text-4xl font-semibold text-[var(--brand-brown)]">Table {normalizedTable}</h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-           Scan the QR code at the table to get started. You can browse the menu, add items to your cart, and place your order directly from your phone.
+      <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--brand-beige)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.65)]">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">☕</span>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--gold)] opacity-90">Cafe Coffee Aroma</p>
+        </div>
+        <h1 className="mt-4 text-4xl font-bold text-[var(--brand-brown)] tracking-tight">Table {normalizedTable}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+          Browse the menu, add your favourites, and place your order directly from your phone.
         </p>
-        <div className="mt-6 rounded-[1.75rem] border border-[var(--brand-brown-opaque)] bg-[var(--brand-beige)] p-5 shadow-[0_20px_40px_-26px_rgba(74,44,33,0.06)]">
-          <p className="text-sm text-[var(--muted)]">Scan the menu, add favorites, and place your order in minutes.</p>
+        <div className="mt-5 rounded-2xl border border-[var(--border-warm)] bg-[var(--brand-white)] p-4">
+          <p className="text-sm text-[var(--muted)]">Scan the menu, add your picks, and order in minutes.</p>
         </div>
         <Link
           href={`/order/table/${normalizedTable}/menu`}
-            className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
+          className="btn-gold mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-2xl px-4 text-sm font-bold shadow-[0_4px_18px_rgba(252,176,58,0.30)] tracking-wide"
         >
-          Start Ordering
+          Start Ordering →
         </Link>
       </section>
     </main>

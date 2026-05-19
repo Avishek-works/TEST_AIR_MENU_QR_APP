@@ -10,7 +10,7 @@ export function QuantityStepper({ quantity, onDecrease, onIncrease }: QuantitySt
       <button
         type="button"
         onClick={onIncrease}
-        className="inline-flex h-11 min-w-11 items-center justify-center rounded-full bg-[var(--button-bg)] px-5 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
+        className="btn-gold inline-flex h-10 min-w-[4.5rem] items-center justify-center rounded-full px-4 text-sm font-semibold shadow-[0_4px_14px_rgba(252,176,58,0.25)]"
       >
         Add
       </button>
@@ -18,20 +18,22 @@ export function QuantityStepper({ quantity, onDecrease, onIncrease }: QuantitySt
   }
 
   return (
-    <div className="inline-flex h-11 items-center rounded-full border border-[var(--brand-brown-opaque)] bg-[var(--brand-beige)] shadow-[0_10px_25px_-18px_rgba(74,44,33,0.06)]">
+    <div className="inline-flex h-10 items-center overflow-hidden rounded-full border border-[var(--gold-border)] bg-[var(--brand-beige)] shadow-[0_4px_14px_-6px_rgba(252,176,58,0.15)]">
       <button
         type="button"
         onClick={onDecrease}
-        className="h-full min-w-11 px-3 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
+        className="h-full min-w-10 px-3 text-base font-bold text-[var(--gold)] transition-colors duration-150 hover:bg-[var(--gold-soft)] active:scale-95"
         aria-label="Decrease quantity"
       >
         −
       </button>
-      <span className="min-w-[2.25rem] text-center text-sm font-semibold text-[var(--brand-brown)]">{quantity}</span>
+      <span className="min-w-[1.75rem] text-center text-sm font-semibold text-[var(--brand-brown)] tabular-nums">
+        {quantity}
+      </span>
       <button
         type="button"
         onClick={onIncrease}
-        className="h-full min-w-11 px-3 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
+        className="h-full min-w-10 px-3 text-base font-bold text-[var(--gold)] transition-colors duration-150 hover:bg-[var(--gold-soft)] active:scale-95"
         aria-label="Increase quantity"
       >
         +

@@ -92,6 +92,8 @@ export function hasKeyword(text: string, keywords: readonly string[]) {
 }
 
 export function resolveMenuImage(item: RawMenuItem) {
+  if (item.image_url) return item.image_url;
+
   if (IMAGE_BY_ITEM_ID[item.id]) return IMAGE_BY_ITEM_ID[item.id];
 
   const itemSlug = toSlug(item.name);
