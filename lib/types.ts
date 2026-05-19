@@ -1,9 +1,3 @@
-export interface RestaurantTable {
-  id: string;
-  table_number: string;
-  active: boolean;
-}
-
 export interface MenuCategory {
   id: string;
   name: string;
@@ -54,10 +48,6 @@ export interface PlaceOrderInput {
   tableNumber: string;
   customerName: string;
   customerPhone: string;
-  customerEmail?: string;
-  customerDob?: string;
-  notes?: string;
-  clientToken?: string;
   items: CartLineItem[];
 }
 

@@ -22,7 +22,7 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const { items, notes, customer, setCustomer, subtotal, clearCart } = useCart();
+  const { items, customer, setCustomer, subtotal, clearCart } = useCart();
 
   const phoneError = useMemo(() => {
     if (!customer.phone.trim()) return "";
@@ -57,19 +57,11 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
       return;
     }
 
-    const inFlightToken =
-      sessionStorage.getItem("cca-order-token") || crypto.randomUUID();
-    sessionStorage.setItem("cca-order-token", inFlightToken);
-
     // Payload logging (sanitized; no secrets)
     console.log("[order] sending payload preview", {
       tableNumber: tableId,
       customerName: customer.name.trim(),
       customerPhone: customer.phone,
-      customerEmail: customer.email ? "***" : null,
-      customerDob: customer.dob || null,
-      hasNotes: Boolean(notes?.trim?.() ? notes.trim() : notes),
-      clientToken: inFlightToken ? "present" : null,
       itemsCount: items.length,
     });
 
@@ -78,10 +70,6 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
         tableNumber: tableId,
         customerName: customer.name,
         customerPhone: customer.phone,
-        customerEmail: customer.email,
-        customerDob: customer.dob,
-        notes,
-        clientToken: inFlightToken,
         items,
       });
 
@@ -92,15 +80,11 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
       });
 
       if (!result.ok || !result.orderId) {
-        const message =
-          result.error === "Table is invalid or inactive."
-            ? "The table number is invalid or inactive. Please return home and enter a valid table number."
-            : result.error || "Unable to place order.";
+        const message = result.error || "Unable to place order.";
         setError(message);
         return;
       }
 
-      sessionStorage.removeItem("cca-order-token");
       clearCart();
       router.push(`/order/table/${tableId}/success?orderId=${result.orderId}`);
     });
@@ -231,4 +215,3 @@ function Field({
     </label>
   );
 }
-

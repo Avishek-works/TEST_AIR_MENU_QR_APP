@@ -17,8 +17,8 @@ Production-ready, mobile-first dine-in QR ordering app built with Next.js 15, Ty
 - Quantity steppers and persistent cart (refresh-safe)
 - Sticky mobile cart bar
 - Cart notes and customer details flow
-- Server action order placement with table validation
-- Duplicate submission guard via `client_order_token`
+- Server action order placement into shared billing tables (`bills`, `bill_items`)
+- Duplicate submit prevention via loading/disabled submit state
 - Success confirmation screen
 - Loading and empty states
 
