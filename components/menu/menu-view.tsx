@@ -218,8 +218,8 @@ function MenuItemCard({
         ) : null}
         <p className="mt-1 text-[15px] font-bold text-[var(--accent-gold)] tracking-tight">{formatCurrency(item.price)}</p>
         <div className="mt-1.5 flex items-center gap-2">
-          {item.uiIsVeg ? <FoodIndicator kind="veg" /> : null}
-          {item.uiIsNonVeg ? <FoodIndicator kind="non-veg" /> : null}
+          {item.uiIsVeg ? <FoodIndicator kind="veg" compact /> : null}
+          {item.uiIsNonVeg ? <FoodIndicator kind="non-veg" compact /> : null}
           {item.uiIsBestseller ? <Badge label="★ Top Pick" color="gold" /> : null}
         </div>
       </div>

@@ -123,7 +123,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         payloadShape: {
           ...billInsertPayload,
           walk_in_name: Boolean(billInsertPayload.walk_in_name),
-          walk_in_phone_len: billInsertPayload.walk_in_phone.length,
+          walk_in_phone_len: String(billInsertPayload.walk_in_phone ?? "").length,
         },
       });
     }
