@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { lookupCustomerAction, placeOrderAction } from "@/app/order/actions";
+import { useMemo, useState, useTransition } from "react";
+import { placeOrderAction } from "@/app/order/actions";
 import { useCart } from "@/components/cart/cart-provider";
 
 const PHONE_MAX_LENGTH = 10;
@@ -29,13 +29,9 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
-  const [welcomeName, setWelcomeName] = useState<string | null>(null);
 
   const { items, notes, customer, setCustomer, subtotal, clearCart } = useCart();
   const maxDob = useMemo(() => getTodayDateValue(), []);
-
-  // Track last phone we looked up to avoid redundant calls
-  const lastLookedUpPhone = useRef<string>("");
 
   const phoneError = useMemo(() => {
     if (!customer.phone.trim()) return "";
@@ -49,20 +45,6 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
     if (customer.dob > maxDob) return "Date of birth cannot be in the future.";
     return "";
   }, [customer.dob, maxDob]);
-
-  // When phone reaches 10 valid digits, look up the customer silently
-  useEffect(() => {
-    if (!isValidPhone(customer.phone) || customer.phone === lastLookedUpPhone.current) return;
-    lastLookedUpPhone.current = customer.phone;
-    setWelcomeName(null);
-
-    lookupCustomerAction(customer.phone).then((result) => {
-      if (!result.found || !result.name) return;
-      setWelcomeName(result.name);
-      // Prefill name only when the field is still empty
-      setCustomer({ name: customer.name.trim() || result.name });
-    });
-  }, [customer.phone, customer.name, setCustomer]);
 
   const canPlaceOrder =
     !isPending &&
@@ -110,8 +92,6 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
         tableNumber: tableId,
         customerName: customer.name,
         customerPhone: customer.phone,
-        customerEmail: customer.email || undefined,
-        customerDob: customer.dob || undefined,
         notes: allowOrderNotes ? notes : undefined,
         items,
       });
@@ -142,13 +122,6 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
         <p className="mt-1 text-xs text-[var(--text-secondary)]">A few details to complete your order.</p>
       </div>
 
-      {/* Welcome back banner */}
-      {welcomeName ? (
-        <div className="mt-4 rounded-xl border border-[var(--accent-gold-soft)] bg-[var(--bg-elevated)] px-4 py-3 text-sm font-medium text-[var(--accent-gold)]">
-          👋 Welcome back, {welcomeName}!
-        </div>
-      ) : null}
-
       <form onSubmit={placeOrder} className="mt-5 space-y-4">
         <Field
           label="Name *"
@@ -159,10 +132,7 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
         <Field
           label="Phone *"
           value={customer.phone}
-          onChange={(value) => {
-            setCustomer({ phone: sanitizePhone(value) });
-            setWelcomeName(null);
-          }}
+          onChange={(value) => setCustomer({ phone: sanitizePhone(value) })}
           placeholder="Enter your phone"
           inputMode="numeric"
           inputProps={{
