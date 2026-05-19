@@ -17,12 +17,21 @@ function isValidPhone(phone: string): boolean {
   return /^\d{10}$/.test(phone);
 }
 
-export function CustomerDetailsForm({ tableId }: { tableId: string }) {
+function getTodayDateValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = `${now.getMonth() + 1}`.padStart(2, "0");
+  const day = `${now.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: string; allowOrderNotes: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const { items, customer, setCustomer, subtotal, clearCart } = useCart();
+  const { items, notes, customer, setCustomer, subtotal, clearCart } = useCart();
+  const maxDob = useMemo(() => getTodayDateValue(), []);
 
   const phoneError = useMemo(() => {
     if (!customer.phone.trim()) return "";
@@ -31,11 +40,18 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
     return "";
   }, [customer.phone]);
 
+  const dobError = useMemo(() => {
+    if (!customer.dob) return "";
+    if (customer.dob > maxDob) return "Date of birth cannot be in the future.";
+    return "";
+  }, [customer.dob, maxDob]);
+
   const canPlaceOrder =
     !isPending &&
     items.length > 0 &&
     !!customer.name.trim() &&
-    isValidPhone(customer.phone);
+    isValidPhone(customer.phone) &&
+    !dobError;
 
   const placeOrder = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,6 +68,11 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
       return;
     }
 
+    if (dobError) {
+      setError(dobError);
+      return;
+    }
+
     if (items.length === 0) {
       setError("Your cart is empty.");
       return;
@@ -60,16 +81,18 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
     // Payload logging (sanitized; no secrets)
     console.log("[order] sending payload preview", {
       tableNumber: tableId,
-      customerName: customer.name.trim(),
-      customerPhone: customer.phone,
-      itemsCount: items.length,
-    });
+        customerName: customer.name.trim(),
+        customerPhone: customer.phone,
+        hasNotes: allowOrderNotes && Boolean(notes.trim()),
+        itemsCount: items.length,
+      });
 
     startTransition(async () => {
       const result = await placeOrderAction({
         tableNumber: tableId,
         customerName: customer.name,
         customerPhone: customer.phone,
+        notes: allowOrderNotes ? notes : undefined,
         items,
       });
 
@@ -131,7 +154,8 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
           value={customer.dob}
           onChange={(value) => setCustomer({ dob: value })}
           placeholder="YYYY-MM-DD"
-          inputProps={{ type: "date" }}
+          inputProps={{ type: "date", max: maxDob }}
+          error={dobError || undefined}
         />
 
 
