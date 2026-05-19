@@ -5,7 +5,6 @@ import { createPublicSupabase } from "@/lib/supabase/public";
 import { CLIENT_ID } from "@/lib/config";
 
 export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
-const MENU_FALLBACK_IMAGE = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500";
 
 export async function getActiveTable(tableId: string): Promise<RestaurantTable | null> {
   noStore();
@@ -40,15 +39,13 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
       code: error.code,
     });
   }
-  console.log("[getMenuData] fetched products count:", products?.length ?? 0);
-  console.log("[getMenuData] first fetched product:", products?.[0] ?? null);
 
   const items = (products ?? []).map((product) => ({
     id: product.id,
     category_id: product.type ?? "Uncategorized",
     name: product.name,
     description: "",
-    image_url: MENU_FALLBACK_IMAGE,
+    image_url: null,
     price: product.price,
     is_veg: false,
     is_non_veg: false,
@@ -58,8 +55,6 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
   const categoryNames = Array.from(new Set(items.map((item) => item.category_id))).sort((a, b) => a.localeCompare(b));
   const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
-
-  console.log("[getMenuData] grouped categories:", categories.length);
 
   return { categories, items };
 }

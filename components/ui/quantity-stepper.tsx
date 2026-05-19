@@ -10,7 +10,7 @@ export function QuantityStepper({ quantity, onDecrease, onIncrease }: QuantitySt
       <button
         type="button"
         onClick={onIncrease}
-        className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--brand-brown)] px-5 text-sm font-semibold text-[var(--brand-white)] transition hover:brightness-95"
+        className="inline-flex h-10 items-center justify-center rounded-full bg-[var(--button-bg)] px-5 text-sm font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
       >
         Add
       </button>

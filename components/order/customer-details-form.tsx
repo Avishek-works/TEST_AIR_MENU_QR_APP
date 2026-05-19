@@ -105,7 +105,7 @@ export function CustomerDetailsForm({ tableId }: { tableId: string }) {
 
         <button
           disabled={isPending}
-          className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 font-semibold text-[var(--brand-white)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 font-semibold text-[var(--brand-brown)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
           type="submit"
           style={{ boxShadow: '0 8px 20px rgba(74,44,33,0.12)' }}
         >

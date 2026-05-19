@@ -18,7 +18,7 @@ export default async function TablePage({ params }: { params: Promise<{ tableId:
         </div>
         <Link
           href={`/order/table/${normalizedTable}/menu`}
-            className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--brand-brown)] px-4 font-semibold text-[var(--brand-white)] transition hover:brightness-95"
+            className="mt-6 inline-flex min-h-[3rem] w-full items-center justify-center rounded-2xl bg-[var(--button-bg)] px-4 font-semibold text-[var(--brand-brown)] transition hover:brightness-95"
         >
           Start Ordering
         </Link>
