@@ -44,9 +44,9 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
 export async function getOrderDetails(orderId: string) {
   noStore();
-  const supabase = createAdminSupabase();
+  const adminSupabase = createAdminSupabase();
 
-  const { data, error } = await supabase
+  const { data, error } = await adminSupabase
     .from("bills")
     .select("id,table_number,final_amount")
     .eq("id", orderId)

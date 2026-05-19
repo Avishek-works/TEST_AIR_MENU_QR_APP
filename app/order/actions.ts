@@ -56,8 +56,8 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
       return { found: false };
     }
 
-    const supabase = createAdminSupabase();
-    const { data, error } = await supabase
+    const adminSupabase = createAdminSupabase();
+    const { data, error } = await adminSupabase
       .from("customers")
       .select("id,name,email,dob")
       .eq("client_id", clientId)
@@ -169,7 +169,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Restaurant configuration missing." };
     }
 
-    const supabase = createAdminSupabase();
+    const adminSupabase = createAdminSupabase();
     const orderNotesSupport = await getOrderNotesSupport();
     let createdCustomerId: string | null = null;
 
@@ -178,7 +178,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         return;
       }
 
-      const { error: customerRollbackError } = await supabase
+      const { error: customerRollbackError } = await adminSupabase
         .from("customers")
         .delete()
         .eq("id", createdCustomerId)
@@ -194,7 +194,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       }
     };
 
-    const { data: existingCustomer, error: existingCustomerError } = await supabase
+    const { data: existingCustomer, error: existingCustomerError } = await adminSupabase
       .from("customers")
       .select("id,name,email,dob")
       .eq("client_id", clientId)
@@ -231,7 +231,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         customerInsertPayload.dob = customerDob;
       }
 
-      const { data: createdCustomer, error: createCustomerError } = await supabase
+      const { data: createdCustomer, error: createCustomerError } = await adminSupabase
         .from("customers")
         .insert(customerInsertPayload)
         .select("id")
@@ -239,7 +239,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
 
       if (createCustomerError || !createdCustomer) {
         if (createCustomerError?.code === "23505") {
-          const { data: fetchedAfterConflict, error: fetchAfterConflictError } = await supabase
+          const { data: fetchedAfterConflict, error: fetchAfterConflictError } = await adminSupabase
             .from("customers")
             .select("id")
             .eq("client_id", clientId)
@@ -287,7 +287,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       billInsertPayload[orderNotesSupport.columnName] = orderNotes;
     }
 
-    const { data: bill, error: billError } = await supabase
+    const { data: bill, error: billError } = await adminSupabase
       .from("bills")
       .insert(billInsertPayload)
       .select("id,client_id")
@@ -318,7 +318,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         actualClientId: bill.client_id,
       });
 
-      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      const { error: rollbackError } = await adminSupabase.from("bills").delete().eq("id", bill.id);
       if (rollbackError) {
         console.error("[order] rollback delete bills failed after client_id mismatch", {
           code: rollbackError.code,
@@ -338,7 +338,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       total: item.total,
     }));
 
-    const { error: itemError } = await supabase.from("bill_items").insert(billItemPayload);
+    const { error: itemError } = await adminSupabase.from("bill_items").insert(billItemPayload);
 
     if (itemError) {
       console.error("[order] supabase insert bill_items failed", {
@@ -353,7 +353,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         },
       });
 
-      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      const { error: rollbackError } = await adminSupabase.from("bills").delete().eq("id", bill.id);
       if (rollbackError) {
         console.error("[order] rollback delete bills failed", {
           code: rollbackError.code,
