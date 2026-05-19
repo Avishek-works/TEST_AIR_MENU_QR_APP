@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { placeOrderAction } from "@/app/order/actions";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { lookupCustomerByPhoneAction, placeOrderAction } from "@/app/order/actions";
 import { useCart } from "@/components/cart/cart-provider";
 
 const PHONE_MAX_LENGTH = 10;
@@ -29,9 +29,84 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [welcomeName, setWelcomeName] = useState("");
 
   const { items, notes, customer, setCustomer, subtotal, clearCart } = useCart();
   const maxDob = useMemo(() => getTodayDateValue(), []);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestLookupTokenRef = useRef(0);
+  const lookupCacheRef = useRef<Record<string, string | null>>({});
+  const customerNameRef = useRef(customer.name);
+  const setCustomerRef = useRef(setCustomer);
+
+  useEffect(() => {
+    customerNameRef.current = customer.name;
+  }, [customer.name]);
+
+  useEffect(() => {
+    setCustomerRef.current = setCustomer;
+  }, [setCustomer]);
+
+  useEffect(() => {
+    const phone = customer.phone;
+
+    if (!isValidPhone(phone)) {
+      setWelcomeName("");
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      return;
+    }
+
+    const cachedName = lookupCacheRef.current[phone];
+    if (cachedName !== undefined) {
+      setWelcomeName(cachedName ?? "");
+      if (cachedName && !customerNameRef.current.trim()) {
+        setCustomerRef.current({ name: cachedName });
+      }
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      const lookupToken = latestLookupTokenRef.current + 1;
+      latestLookupTokenRef.current = lookupToken;
+
+      void lookupCustomerByPhoneAction(phone)
+        .then((result) => {
+          if (latestLookupTokenRef.current !== lookupToken) {
+            return;
+          }
+
+          if (!result.found || !result.customer?.name) {
+            lookupCacheRef.current[phone] = null;
+            setWelcomeName("");
+            return;
+          }
+
+          const foundName = result.customer.name;
+          lookupCacheRef.current[phone] = foundName;
+          setWelcomeName(foundName);
+
+          if (!customerNameRef.current.trim()) {
+            setCustomerRef.current({ name: foundName });
+          }
+        })
+        .catch(() => {
+          lookupCacheRef.current[phone] = null;
+          setWelcomeName("");
+        });
+    }, 350);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [customer.phone]);
 
   const phoneError = useMemo(() => {
     if (!customer.phone.trim()) return "";
@@ -140,8 +215,13 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
             maxLength: PHONE_MAX_LENGTH,
           }}
           error={phoneError || undefined}
-
         />
+
+        {welcomeName ? (
+          <p className="rounded-xl border border-[var(--border-warm)] bg-[var(--bg-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] animate-[fadeIn_180ms_ease-out]">
+            👋 Welcome back, {welcomeName}
+          </p>
+        ) : null}
         <Field
           label="Email (optional)"
           value={customer.email}
