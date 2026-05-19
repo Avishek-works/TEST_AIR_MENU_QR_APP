@@ -3,7 +3,7 @@
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { getConfiguredClientId } from "@/lib/config";
 import { getOrderNotesSupport } from "@/lib/order-capabilities";
-import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
+import type { LookupCustomerResult, PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
 
 const REQUIRED_STATUS = "PENDING";
 
@@ -22,11 +22,115 @@ const toSafeNumber = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : NaN;
 };
 
+/**
+ * Look up an existing customer by sanitized phone + client_id.
+ * Returns their name when found so the UI can show a welcome message.
+ */
+export async function lookupCustomerAction(rawPhone: string): Promise<LookupCustomerResult> {
+  try {
+    const phone = sanitizePhone(rawPhone);
+    if (!isValidPhone(phone)) return { found: false };
+
+    const clientId = getConfiguredClientId();
+    if (!clientId) return { found: false };
+
+    const supabase = createAdminSupabase();
+    const { data, error } = await supabase
+      .from("customers")
+      .select("id,name")
+      .eq("phone", phone)
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (error || !data) return { found: false };
+    return { found: true, name: data.name };
+  } catch {
+    return { found: false };
+  }
+}
+
+/**
+ * Resolve or create a customer record and return their id.
+ * Returns null only when creation fails unexpectedly.
+ */
+async function resolveCustomerId(
+  supabase: ReturnType<typeof createAdminSupabase>,
+  clientId: string,
+  name: string,
+  phone: string,
+  email?: string,
+  dob?: string,
+): Promise<string | null> {
+  // 1. Try to find existing customer (exact phone + client scoped)
+  const { data: existing, error: lookupError } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("phone", phone)
+    .eq("client_id", clientId)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.warn("[order] customer lookup error (non-fatal)", {
+      code: lookupError.code,
+      message: lookupError.message,
+    });
+  }
+
+  if (existing) {
+    console.log("[order] existing customer resolved", { customerId: existing.id });
+    return existing.id;
+  }
+
+  // 2. Create new customer
+  const newCustomer: Record<string, string | boolean> = {
+    client_id: clientId,
+    name,
+    phone,
+    is_active: true,
+  };
+  if (email) newCustomer.email = email;
+  if (dob) newCustomer.dob = dob;
+
+  const { data: created, error: createError } = await supabase
+    .from("customers")
+    .insert(newCustomer)
+    .select("id")
+    .single();
+
+  if (createError) {
+    // Handle race condition: another request may have inserted the same customer
+    if (createError.code === "23505") {
+      console.log("[order] duplicate customer race condition — re-fetching", {
+        code: createError.code,
+      });
+      const { data: refetched, error: refetchError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("phone", phone)
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+      if (!refetchError && refetched) return refetched.id;
+    }
+
+    console.error("[order] customer creation failed", {
+      code: createError.code,
+      message: createError.message,
+    });
+    return null;
+  }
+
+  console.log("[order] new customer created", { customerId: created?.id });
+  return created?.id ?? null;
+}
+
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   try {
     const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
     const customerName = sanitizeText(input.customerName);
     const customerPhone = sanitizePhone(input.customerPhone);
+    const customerEmail = sanitizeText(input.customerEmail) || undefined;
+    const customerDob = sanitizeText(input.customerDob) || undefined;
     const orderNotes = sanitizeOrderNotes(input.notes);
 
     if (!tableNumber || !customerName || !customerPhone || input.items.length === 0) {
@@ -93,16 +197,37 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
     const supabase = createAdminSupabase();
     const orderNotesSupport = await getOrderNotesSupport();
 
+    // Resolve customer: look up existing or create new
+    const customerId = await resolveCustomerId(
+      supabase,
+      clientId,
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerDob,
+    );
+
+    // Build bill payload — prefer customer_id linkage; fall back to walk_in only when customer
+    // resolution failed unexpectedly so order placement can still succeed.
     const billInsertPayload: Record<string, string | number> = {
       client_id: clientId,
-      walk_in_name: customerName,
-      walk_in_phone: customerPhone,
       table_number: tableNumber,
       total_amount: totalAmount,
       discount,
       final_amount: finalAmount,
       status: REQUIRED_STATUS,
     };
+
+    if (customerId) {
+      billInsertPayload.customer_id = customerId;
+    } else {
+      // Graceful walk-in fallback
+      console.warn("[order] customer resolution failed — using walk_in fallback", {
+        tableNumber,
+      });
+      billInsertPayload.walk_in_name = customerName;
+      billInsertPayload.walk_in_phone = customerPhone;
+    }
 
     if (orderNotesSupport.columnName && orderNotes) {
       billInsertPayload[orderNotesSupport.columnName] = orderNotes;
@@ -121,9 +246,8 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         details: (billError as { details?: unknown }).details,
         hint: (billError as { hint?: unknown }).hint,
         payloadShape: {
-          ...billInsertPayload,
-          walk_in_name: Boolean(billInsertPayload.walk_in_name),
-          walk_in_phone_len: String(billInsertPayload.walk_in_phone ?? "").length,
+          hasCustomerId: Boolean(billInsertPayload.customer_id),
+          hasWalkInFallback: Boolean(billInsertPayload.walk_in_name),
         },
       });
     }

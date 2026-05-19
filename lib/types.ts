@@ -48,6 +48,8 @@ export interface PlaceOrderInput {
   tableNumber: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
+  customerDob?: string;
   notes?: string;
   items: CartLineItem[];
 }
@@ -56,4 +58,9 @@ export interface PlaceOrderResult {
   ok: boolean;
   orderId?: string;
   error?: string;
+}
+
+export interface LookupCustomerResult {
+  found: boolean;
+  name?: string;
 }
