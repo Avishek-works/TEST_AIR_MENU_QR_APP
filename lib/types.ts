@@ -48,6 +48,8 @@ export interface PlaceOrderInput {
   tableNumber: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
+  customerDob?: string;
   notes?: string;
   items: CartLineItem[];
 }
@@ -64,5 +66,7 @@ export interface CustomerLookupResult {
   customer?: {
     id: string;
     name: string;
+    email: string;
+    dob: string;
   };
 }

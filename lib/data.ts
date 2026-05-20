@@ -1,18 +1,14 @@
 import { unstable_noStore as noStore } from "next/cache";
+import { getBillOrderDetails } from "@/db/bills";
+import { listProductsForMenu } from "@/db/orders";
 import { sortCategoryNames } from "@/lib/menu-ui";
 import type { MenuCategory, RawMenuItem } from "@/lib/types";
-import { createAdminSupabase } from "@/lib/supabase/admin";
-import { createPublicSupabase } from "@/lib/supabase/public";
 
 export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
 
 export async function getMenuData(): Promise<{ categories: MenuCategory[]; items: RawMenuItem[] }> {
   noStore();
-  const supabase = createPublicSupabase();
-
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("id, name, price, type");
+  const { data: products, error } = await listProductsForMenu();
 
   if (error) {
     console.error("[getMenuData] products query error:", {
@@ -44,13 +40,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
 
 export async function getOrderDetails(orderId: string) {
   noStore();
-  const supabase = createAdminSupabase();
-
-  const { data, error } = await supabase
-    .from("bills")
-    .select("id,table_number,final_amount")
-    .eq("id", orderId)
-    .maybeSingle();
+  const { data, error } = await getBillOrderDetails(orderId);
 
   if (error) {
     throw error;

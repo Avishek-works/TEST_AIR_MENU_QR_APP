@@ -1,6 +1,13 @@
 "use server";
 
-import { createAdminSupabase } from "@/lib/supabase/admin";
+import { createBill, deleteBillById } from "@/db/bills";
+import {
+  createCustomer,
+  deleteCustomerById,
+  findCustomerIdByPhone,
+  findCustomerProfileByPhone,
+} from "@/db/customers";
+import { createBillItems } from "@/db/orders";
 import { getConfiguredClientId } from "@/lib/config";
 import { getOrderNotesSupport } from "@/lib/order-capabilities";
 import type { CustomerLookupResult, PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
@@ -12,10 +19,31 @@ const sanitizeText = (value: string | undefined | null) => (value ?? "").trim();
 const sanitizePhone = (value: string | undefined | null): string =>
   sanitizeText(value).replace(/\D+/g, "").slice(0, 10);
 
+const sanitizeEmail = (value: string | undefined | null): string => sanitizeText(value).toLowerCase().slice(0, 254);
+
 const sanitizeOrderNotes = (value: string | undefined | null): string =>
   sanitizeText(value).replace(/\s+/g, " ").slice(0, 280);
 
 const isValidPhone = (phone: string): boolean => /^\d{10}$/.test(phone);
+const isValidEmail = (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const normalizeDob = (value: string | undefined | null): string | null => {
+  const normalized = sanitizeText(value);
+  if (!normalized) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null;
+
+  const parsed = new Date(`${normalized}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const isoDate = parsed.toISOString().slice(0, 10);
+  if (isoDate !== normalized) return null;
+
+  const today = new Date();
+  const maxDate = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, "0")}-${`${today.getDate()}`.padStart(2, "0")}`;
+  if (normalized > maxDate) return null;
+
+  return normalized;
+};
 
 const toSafeNumber = (value: unknown): number => {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -35,13 +63,7 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
       return { found: false };
     }
 
-    const supabase = createAdminSupabase();
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id,name")
-      .eq("client_id", clientId)
-      .eq("phone", sanitizedPhone)
-      .maybeSingle();
+    const { data, error } = await findCustomerProfileByPhone(clientId, sanitizedPhone);
 
     if (error || !data) {
       if (error) {
@@ -58,6 +80,8 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
       customer: {
         id: data.id,
         name: sanitizeText(data.name),
+        email: sanitizeEmail(data.email),
+        dob: sanitizeText(data.dob),
       },
     };
   } catch (error) {
@@ -71,14 +95,16 @@ export async function lookupCustomerByPhoneAction(phone: string): Promise<Custom
 export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   try {
     const tableNumber = sanitizeText(input.tableNumber).toUpperCase();
-    const customerName = sanitizeText(input.customerName);
     const customerPhone = sanitizePhone(input.customerPhone);
+    const customerName = sanitizeText(input.customerName);
+    const customerEmail = sanitizeEmail(input.customerEmail);
+    const customerDobRaw = sanitizeText(input.customerDob);
+    const customerDob = normalizeDob(customerDobRaw);
     const orderNotes = sanitizeOrderNotes(input.notes);
 
-    if (!tableNumber || !customerName || !customerPhone || input.items.length === 0) {
+    if (!tableNumber || !customerPhone || input.items.length === 0) {
       console.log("[order] validation failed: missing required fields", {
         hasTableNumber: Boolean(tableNumber),
-        hasCustomerName: Boolean(customerName),
         hasCustomerPhone: Boolean(customerPhone),
         itemsCount: input.items?.length ?? 0,
       });
@@ -90,6 +116,14 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         customerPhonePreview: customerPhone ? "***10digits" : null,
       });
       return { ok: false, error: "Please enter a valid 10-digit phone number." };
+    }
+
+    if (customerEmail && !isValidEmail(customerEmail)) {
+      return { ok: false, error: "Please enter a valid email address." };
+    }
+
+    if (customerDobRaw && !customerDob) {
+      return { ok: false, error: "Please enter a valid date of birth." };
     }
 
     const normalizedItems = input.items
@@ -136,29 +170,96 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Restaurant configuration missing." };
     }
 
-    const supabase = createAdminSupabase();
     const orderNotesSupport = await getOrderNotesSupport();
+    let createdCustomerId: string | null = null;
 
-    const billInsertPayload: Record<string, string | number> = {
-      client_id: clientId,
-      walk_in_name: customerName,
-      walk_in_phone: customerPhone,
-      table_number: tableNumber,
-      total_amount: totalAmount,
-      discount,
-      final_amount: finalAmount,
-      status: REQUIRED_STATUS,
+    const cleanupCreatedCustomer = async (reason: string) => {
+      if (!createdCustomerId) {
+        return;
+      }
+
+      const { error: customerRollbackError } = await deleteCustomerById(clientId, createdCustomerId);
+
+      if (customerRollbackError) {
+        console.error("[order] rollback delete customer failed", {
+          reason,
+          customerId: createdCustomerId,
+          code: customerRollbackError.code,
+          message: customerRollbackError.message,
+        });
+      }
     };
 
-    if (orderNotesSupport.columnName && orderNotes) {
-      billInsertPayload[orderNotesSupport.columnName] = orderNotes;
+    const { data: existingCustomer, error: existingCustomerError } = await findCustomerProfileByPhone(clientId, customerPhone);
+
+    if (existingCustomerError) {
+      console.error("[order] customer lookup for placement failed", {
+        code: existingCustomerError.code,
+        message: existingCustomerError.message,
+      });
+      return { ok: false, error: "Could not verify customer details. Please try again." };
     }
 
-    const { data: bill, error: billError } = await supabase
-      .from("bills")
-      .insert(billInsertPayload)
-      .select("id,client_id")
-      .single();
+    let resolvedCustomerId = existingCustomer?.id ?? null;
+
+    if (!resolvedCustomerId) {
+      if (!customerName) {
+        return { ok: false, error: "Name is required for new customers." };
+      }
+
+      const { data: createdCustomer, error: createCustomerError } = await createCustomer({
+        clientId,
+        name: customerName,
+        phone: customerPhone,
+        email: customerEmail || undefined,
+        dob: customerDob || undefined,
+      });
+
+      if (createCustomerError || !createdCustomer) {
+        if (createCustomerError?.code === "23505") {
+          const { data: fetchedAfterConflict, error: fetchAfterConflictError } = await findCustomerIdByPhone(
+            clientId,
+            customerPhone,
+          );
+
+          if (fetchAfterConflictError || !fetchedAfterConflict) {
+            console.error("[order] customer re-fetch failed after duplicate conflict", {
+              conflictCode: createCustomerError.code,
+              fetchCode: fetchAfterConflictError?.code,
+              fetchMessage: fetchAfterConflictError?.message,
+            });
+            return { ok: false, error: "Could not resolve customer profile. Please retry." };
+          }
+
+          resolvedCustomerId = fetchedAfterConflict.id;
+        } else {
+          console.error("[order] customer creation failed", {
+            code: createCustomerError?.code,
+            message: createCustomerError?.message,
+          });
+          return { ok: false, error: "Could not save customer details. Please retry." };
+        }
+      } else {
+        resolvedCustomerId = createdCustomer.id;
+        createdCustomerId = createdCustomer.id;
+      }
+    }
+
+    if (!resolvedCustomerId) {
+      return { ok: false, error: "Could not resolve customer profile. Please retry." };
+    }
+
+    const { data: bill, error: billError } = await createBill({
+      clientId,
+      customerId: resolvedCustomerId,
+      tableNumber,
+      totalAmount,
+      discount,
+      finalAmount,
+      status: REQUIRED_STATUS,
+      notesColumn: orderNotesSupport.columnName,
+      notes: orderNotes || undefined,
+    });
 
     if (billError) {
       console.error("[order] supabase insert bills failed", {
@@ -167,14 +268,20 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         details: (billError as { details?: unknown }).details,
         hint: (billError as { hint?: unknown }).hint,
         payloadShape: {
-          ...billInsertPayload,
-          walk_in_name: Boolean(billInsertPayload.walk_in_name),
-          walk_in_phone_len: String(billInsertPayload.walk_in_phone ?? "").length,
+          client_id: clientId,
+          customer_id: resolvedCustomerId,
+          table_number: tableNumber,
+          total_amount: totalAmount,
+          discount,
+          final_amount: finalAmount,
+          status: REQUIRED_STATUS,
+          hasCustomerId: Boolean(resolvedCustomerId),
         },
       });
     }
 
     if (billError || !bill) {
+      await cleanupCreatedCustomer("bill_insert_failed");
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
@@ -185,7 +292,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         actualClientId: bill.client_id,
       });
 
-      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      const { error: rollbackError } = await deleteBillById(bill.id);
       if (rollbackError) {
         console.error("[order] rollback delete bills failed after client_id mismatch", {
           code: rollbackError.code,
@@ -193,18 +300,19 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         });
       }
 
+      await cleanupCreatedCustomer("bill_client_mismatch");
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
     const billItemPayload = normalizedItems.map((item) => ({
-      bill_id: bill.id,
-      product_id: item.productId,
+      billId: bill.id,
+      productId: item.productId,
       quantity: item.quantity,
       price: item.price,
       total: item.total,
     }));
 
-    const { error: itemError } = await supabase.from("bill_items").insert(billItemPayload);
+    const { error: itemError } = await createBillItems(billItemPayload);
 
     if (itemError) {
       console.error("[order] supabase insert bill_items failed", {
@@ -215,11 +323,11 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         payloadShape: {
           billId: bill.id,
           itemsCount: billItemPayload.length,
-          hasInvalidProductId: billItemPayload.some((item) => !item.product_id),
+          hasInvalidProductId: billItemPayload.some((item) => !item.productId),
         },
       });
 
-      const { error: rollbackError } = await supabase.from("bills").delete().eq("id", bill.id);
+      const { error: rollbackError } = await deleteBillById(bill.id);
       if (rollbackError) {
         console.error("[order] rollback delete bills failed", {
           code: rollbackError.code,
@@ -227,6 +335,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
         });
       }
 
+      await cleanupCreatedCustomer("bill_items_insert_failed");
       return { ok: false, error: "Could not save order items. Please retry." };
     }
 
