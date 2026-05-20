@@ -17,6 +17,7 @@ export interface ProductRecord {
   name: string;
   price: number;
   type: string | null;
+  image_url: string | null;
 }
 
 export async function createBillItems(items: BillItemInsertInput[]): Promise<{ error: PostgrestError | null }> {
@@ -35,5 +36,5 @@ export async function createBillItems(items: BillItemInsertInput[]): Promise<{ e
 
 export async function listProductsForMenu(): Promise<{ data: ProductRecord[] | null; error: PostgrestError | null }> {
   const publicSupabase = createPublicSupabase();
-  return publicSupabase.from("products").select("id,name,price,type");
+  return publicSupabase.from("products").select("id,name,price,type,image_url");
 }

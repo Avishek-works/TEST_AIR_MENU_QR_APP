@@ -24,7 +24,7 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     category_id: product.type ?? "Uncategorized",
     name: product.name,
     description: "",
-    image_url: null,
+    image_url: product.image_url ?? null,
     price: product.price,
     is_veg: false,
     is_non_veg: false,
