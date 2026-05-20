@@ -10,6 +10,7 @@ const NON_ALPHANUMERIC = /[^a-z0-9]+/g;
 
 export const ALL_CATEGORY = "__all__" as const;
 export const MENU_DEFAULT_IMAGE = "/menu/default.svg";
+const SUPABASE_PUBLIC_OBJECT_BASE_URL = "https://ltbqxyvdtrrlohdfrprf.supabase.co/storage/v1/object/public/";
 
 export const NON_VEG_KEYWORDS = [
   "chicken",
@@ -140,6 +141,16 @@ export function resolveMenuImage(item: RawMenuItem) {
   if (categorySlug && IMAGE_BY_CATEGORY[categorySlug]) return IMAGE_BY_CATEGORY[categorySlug];
 
   return MENU_DEFAULT_IMAGE;
+}
+
+export function getProductImageUrl(imageUrl: string | null | undefined) {
+  const normalizedImageUrl = imageUrl?.trim();
+
+  if (!normalizedImageUrl) return "/placeholder.png";
+  if (/^https?:\/\//i.test(normalizedImageUrl)) return normalizedImageUrl;
+
+  const normalizedStoragePath = normalizedImageUrl.replace(/^\/+/, "");
+  return `${SUPABASE_PUBLIC_OBJECT_BASE_URL}${normalizedStoragePath}`;
 }
 
 export function enrichMenuItems(items: RawMenuItem[]): MenuPresentationItem[] {
