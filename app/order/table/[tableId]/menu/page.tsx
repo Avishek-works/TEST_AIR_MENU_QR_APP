@@ -2,6 +2,8 @@ import Link from "next/link";
 import { MenuView } from "@/components/menu/menu-view";
 import { getMenuData, normalizeTable } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function MenuPage({ params }: { params: Promise<{ tableId: string }> }) {
   const { tableId } = await params;
   const normalizedTable = normalizeTable(tableId);

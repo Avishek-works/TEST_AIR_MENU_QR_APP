@@ -9,6 +9,7 @@ export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
 export async function getMenuData(): Promise<{ categories: MenuCategory[]; items: RawMenuItem[] }> {
   noStore();
   const { data: products, error } = await listProductsForMenu();
+  console.log("[getMenuData] products response data:", products);
 
   if (error) {
     console.error("[getMenuData] products query error:", {
@@ -19,18 +20,21 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
     });
   }
 
-  const items = (products ?? []).map((product) => ({
-    id: product.id,
-    category_id: product.type ?? "Uncategorized",
-    name: product.name,
-    description: "",
-    image_url: product.image_url ?? null,
-    price: product.price,
-    is_veg: false,
-    is_non_veg: false,
-    is_bestseller: false,
-    active: true,
-  })) as RawMenuItem[];
+  const items = (products ?? []).map((product) => {
+    console.log("[getMenuData] product.image_url:", product.image_url);
+    return {
+      id: product.id,
+      category_id: product.type ?? "Uncategorized",
+      name: product.name,
+      description: "",
+      image_url: product.image_url ?? null,
+      price: product.price,
+      is_veg: false,
+      is_non_veg: false,
+      is_bestseller: false,
+      active: true,
+    };
+  }) as RawMenuItem[];
 
   const categoryNames = sortCategoryNames(Array.from(new Set(items.map((item) => item.category_id))));
   const categories = categoryNames.map((type, index) => ({ id: type, name: type, sort_order: index + 1 }));
