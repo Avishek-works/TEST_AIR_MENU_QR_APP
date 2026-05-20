@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
@@ -206,7 +205,6 @@ function MenuItemCard({
         <MenuItemImage
           src={
             item.image_url
-            || (item as MenuPresentationItem & { image?: string | null }).image
             || item.uiImage
             || "/placeholder.png"
           }
@@ -259,15 +257,14 @@ function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; cat
   };
 
   return (
-    <Image
+    <img
       src={imgSrc}
       alt={alt}
-      fill
-      sizes="80px"
+      width={80}
+      height={80}
       loading="lazy"
-      className="object-cover transition-transform duration-300 group-hover:scale-105"
+      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       onError={handleError}
-      unoptimized={imgSrc.startsWith("http")}
     />
   );
 }
