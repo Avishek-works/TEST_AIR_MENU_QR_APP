@@ -1,11 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
 import { formatCurrency } from "@/lib/format";
-import { ALL_CATEGORY, MENU_DEFAULT_IMAGE, enrichMenuItems, resolveMenuImage, toTitleCaseLabel } from "@/lib/menu-ui";
+import {
+  ALL_CATEGORY,
+  MENU_DEFAULT_IMAGE,
+  enrichMenuItems,
+  getProductImageUrl,
+  resolveMenuImage,
+  toTitleCaseLabel,
+} from "@/lib/menu-ui";
 import type { CategoryFilter, MenuCategory, MenuPresentationItem, RawMenuItem } from "@/lib/types";
 
 interface MenuViewProps {
@@ -199,11 +205,17 @@ function MenuItemCard({
   onAdd: () => void;
   onDecrease: () => void;
 }) {
+  const imageSrc = item.image_url ? getProductImageUrl(item.image_url) : item.uiImage || "/placeholder.png";
+
   return (
     <article className="group flex items-center gap-3 rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg-surface)] p-3 transition duration-200 hover:border-[var(--border-warm)] hover:shadow-[0_12px_36px_-18px_rgba(0,0,0,0.55)] hover:-translate-y-[0.5px]">
       {/* Image */}
       <div className="relative h-[80px] w-[80px] shrink-0 overflow-hidden rounded-3xl bg-[#1C140C] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),0_10px_24px_-16px_rgba(0,0,0,0.45)]">
-        <MenuItemImage src={item.uiImage} alt={item.name} categoryId={item.category_id} />
+        <MenuItemImage
+          src={imageSrc}
+          alt={item.name}
+          categoryId={item.category_id}
+        />
       </div>
 
       {/* Info */}
@@ -239,7 +251,7 @@ function MenuItemCard({
 /* ─── Menu Item Image with fallback ────────────────────────────────────── */
 
 function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; categoryId: string }) {
-  const [imgSrc, setImgSrc] = useState(src);
+  const [imgSrc, setImgSrc] = useState(src || "/placeholder.png");
 
   const handleError = () => {
     if (imgSrc !== MENU_DEFAULT_IMAGE) {
@@ -250,15 +262,14 @@ function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; cat
   };
 
   return (
-    <Image
+    <img
       src={imgSrc}
       alt={alt}
-      fill
-      sizes="80px"
+      width={80}
+      height={80}
       loading="lazy"
-      className="object-cover transition-transform duration-300 group-hover:scale-105"
+      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
       onError={handleError}
-      unoptimized={imgSrc.startsWith("http")}
     />
   );
 }
