@@ -203,7 +203,16 @@ function MenuItemCard({
     <article className="group flex items-center gap-3 rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg-surface)] p-3 transition duration-200 hover:border-[var(--border-warm)] hover:shadow-[0_12px_36px_-18px_rgba(0,0,0,0.55)] hover:-translate-y-[0.5px]">
       {/* Image */}
       <div className="relative h-[80px] w-[80px] shrink-0 overflow-hidden rounded-3xl bg-[#1C140C] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),0_10px_24px_-16px_rgba(0,0,0,0.45)]">
-        <MenuItemImage src={item.uiImage} alt={item.name} categoryId={item.category_id} />
+        <MenuItemImage
+          src={
+            item.image_url
+            || (item as MenuPresentationItem & { image?: string | null }).image
+            || item.uiImage
+            || "/placeholder.png"
+          }
+          alt={item.name}
+          categoryId={item.category_id}
+        />
       </div>
 
       {/* Info */}
@@ -239,7 +248,7 @@ function MenuItemCard({
 /* ─── Menu Item Image with fallback ────────────────────────────────────── */
 
 function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; categoryId: string }) {
-  const [imgSrc, setImgSrc] = useState(src);
+  const [imgSrc, setImgSrc] = useState(src || "/placeholder.png");
 
   const handleError = () => {
     if (imgSrc !== MENU_DEFAULT_IMAGE) {
