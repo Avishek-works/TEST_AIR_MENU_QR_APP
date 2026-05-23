@@ -13,13 +13,18 @@ export default function Home() {
 
   return (
     <main className="home-hero-root mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-8">
-      <div aria-hidden className="home-ambient-glow" />
-      <div aria-hidden className="home-steam home-steam-1">☕</div>
-      <div aria-hidden className="home-steam home-steam-2">☕</div>
-      <div aria-hidden className="home-bean home-bean-1">●</div>
-      <div aria-hidden className="home-bean home-bean-2">●</div>
+      <div aria-hidden className="home-ambient-layer">
+        <div className="home-ambient-glow home-ambient-glow-1" />
+        <div className="home-ambient-glow home-ambient-glow-2" />
+      </div>
+      <div aria-hidden className="home-steam home-steam-1" />
+      <div aria-hidden className="home-steam home-steam-2" />
+      <div aria-hidden className="home-steam home-steam-3" />
+      <div aria-hidden className="home-bean home-bean-1">◦</div>
+      <div aria-hidden className="home-bean home-bean-2">◦</div>
+      <div aria-hidden className="home-bean home-bean-3">◦</div>
 
-      <div className="home-card-fade-up relative rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
+      <div className="home-welcome-card home-card-fade-up relative rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
         {/* Brand mark */}
         <div className="home-reveal-delay-1 flex items-center gap-2">
           <span className="text-2xl">☕</span>
@@ -62,7 +67,7 @@ export default function Home() {
             </div>
           </label>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="home-reveal-delay-5 flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
               className="btn-gold home-premium-button inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl px-5 text-sm font-bold shadow-[0_4px_18px_rgba(252,176,58,0.30)] tracking-wide"
@@ -78,7 +83,7 @@ export default function Home() {
           </div>
         </form>
 
-        <div className="home-reveal-delay-4 mt-6 flex items-center justify-center gap-2 text-[11px] text-[var(--text-muted)]">
+        <div className="home-reveal-delay-6 mt-6 flex items-center justify-center gap-2 text-[11px] text-[var(--text-muted)]">
           <span>Powered by</span>
           {!logoLoadFailed ? (
             <Image
