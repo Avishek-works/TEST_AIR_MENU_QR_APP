@@ -11,6 +11,7 @@ const NON_ALPHANUMERIC = /[^a-z0-9]+/g;
 export const ALL_CATEGORY = "__all__" as const;
 export const MENU_DEFAULT_IMAGE = "/menu/default.svg";
 const SUPABASE_PUBLIC_OBJECT_BASE_URL = "https://ltbqxyvdtrrlohdfrprf.supabase.co/storage/v1/object/public/";
+const PRODUCT_IMAGE_URL_CACHE = new Map<string, string>();
 
 export const NON_VEG_KEYWORDS = [
   "chicken",
@@ -147,10 +148,18 @@ export function getProductImageUrl(imageUrl: string | null | undefined) {
   const normalizedImageUrl = imageUrl?.trim();
 
   if (!normalizedImageUrl) return "/placeholder.png";
-  if (/^https?:\/\//i.test(normalizedImageUrl)) return normalizedImageUrl;
+  const cachedImageUrl = PRODUCT_IMAGE_URL_CACHE.get(normalizedImageUrl);
+  if (cachedImageUrl) return cachedImageUrl;
+
+  if (/^https?:\/\//i.test(normalizedImageUrl)) {
+    PRODUCT_IMAGE_URL_CACHE.set(normalizedImageUrl, normalizedImageUrl);
+    return normalizedImageUrl;
+  }
 
   const normalizedStoragePath = normalizedImageUrl.replace(/^\/+/, "");
-  return `${SUPABASE_PUBLIC_OBJECT_BASE_URL}${normalizedStoragePath}`;
+  const resolvedUrl = `${SUPABASE_PUBLIC_OBJECT_BASE_URL}${normalizedStoragePath}`;
+  PRODUCT_IMAGE_URL_CACHE.set(normalizedImageUrl, resolvedUrl);
+  return resolvedUrl;
 }
 
 export function enrichMenuItems(items: RawMenuItem[]): MenuPresentationItem[] {
