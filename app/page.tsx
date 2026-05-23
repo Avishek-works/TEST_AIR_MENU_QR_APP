@@ -13,27 +13,13 @@ export default function Home() {
 
   return (
     <main className="home-hero-root mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-8">
-      <div aria-hidden className="home-ambient-layer">
-        <div className="home-ambient-glow home-ambient-glow-1" />
-        <div className="home-ambient-glow home-ambient-glow-2" />
-      </div>
-      <div aria-hidden className="home-steam home-steam-1" />
-      <div aria-hidden className="home-steam home-steam-2" />
-      <div aria-hidden className="home-steam home-steam-3" />
-      <svg aria-hidden className="home-bean home-bean-1" viewBox="0 0 28 40" focusable="false">
-        <path d="M14 2C7.4 2 2 7.8 2 14.9c0 10.1 8.4 20.7 12 22.9 3.6-2.2 12-12.8 12-22.9C26 7.8 20.6 2 14 2Z" />
-        <path d="M17.7 6.5c-2.2 2.8-4.1 6.4-4.1 10.4 0 5.2 2.6 9.9 4.7 13.2" />
-      </svg>
-      <svg aria-hidden className="home-bean home-bean-2" viewBox="0 0 28 40" focusable="false">
-        <path d="M14 2C7.4 2 2 7.8 2 14.9c0 10.1 8.4 20.7 12 22.9 3.6-2.2 12-12.8 12-22.9C26 7.8 20.6 2 14 2Z" />
-        <path d="M17.7 6.5c-2.2 2.8-4.1 6.4-4.1 10.4 0 5.2 2.6 9.9 4.7 13.2" />
-      </svg>
-      <svg aria-hidden className="home-bean home-bean-3" viewBox="0 0 28 40" focusable="false">
-        <path d="M14 2C7.4 2 2 7.8 2 14.9c0 10.1 8.4 20.7 12 22.9 3.6-2.2 12-12.8 12-22.9C26 7.8 20.6 2 14 2Z" />
-        <path d="M17.7 6.5c-2.2 2.8-4.1 6.4-4.1 10.4 0 5.2 2.6 9.9 4.7 13.2" />
-      </svg>
+      <div aria-hidden className="home-ambient-glow" />
+      <div aria-hidden className="home-steam home-steam-1">☕</div>
+      <div aria-hidden className="home-steam home-steam-2">☕</div>
+      <div aria-hidden className="home-bean home-bean-1">●</div>
+      <div aria-hidden className="home-bean home-bean-2">●</div>
 
-      <div className="home-welcome-card home-card-fade-up relative rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
+      <div className="home-card-fade-up relative rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
         {/* Brand mark */}
         <div className="home-reveal-delay-1 flex items-center gap-2">
           <span className="text-2xl">☕</span>
@@ -76,7 +62,7 @@ export default function Home() {
             </div>
           </label>
 
-          <div className="home-reveal-delay-5 flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
               className="btn-gold home-premium-button inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl px-5 text-sm font-bold shadow-[0_4px_18px_rgba(252,176,58,0.30)] tracking-wide"
@@ -92,7 +78,7 @@ export default function Home() {
           </div>
         </form>
 
-        <div className="home-reveal-delay-6 mt-6 flex items-center justify-center gap-2 text-[11px] text-[var(--text-muted)]">
+        <div className="home-reveal-delay-4 mt-6 flex items-center justify-center gap-2 text-[11px] text-[var(--text-muted)]">
           <span>Powered by</span>
           {!logoLoadFailed ? (
             <Image
