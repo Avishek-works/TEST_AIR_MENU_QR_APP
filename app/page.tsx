@@ -16,7 +16,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <span className="text-2xl">☕</span>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">
-            Cafe Coffee Aroma
+            Coffee Aroma
           </p>
         </div>
 
