@@ -42,17 +42,22 @@ export function CartPageView({ tableId, allowOrderNotes }: { tableId: string; al
           <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] shadow-[0_8px_28px_-18px_rgba(0,0,0,0.55)]">
             <div className="divide-y divide-[var(--border)]">
               {items.map((item) => (
-                <article key={item.menuItemId} className="flex items-center gap-3 p-3.5">
+                <article key={item.lineId ?? item.menuItemId} className="flex items-center gap-3 p-3.5">
                   <div className="min-w-0 flex-1">
                     <h2 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)]">{toTitleCaseLabel(item.itemName)}</h2>
+                    {item.addons?.length ? (
+                      <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
+                        Add-ons: {item.addons.map((addon) => `${addon.name} (+${formatCurrency(addon.price)})`).join(", ")}
+                      </p>
+                    ) : null}
                     <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{formatCurrency(item.unitPrice)} each</p>
                     <p className="mt-0.5 text-sm font-bold text-[var(--accent-gold)]">{formatCurrency(item.qty * item.unitPrice)}</p>
                   </div>
                   <div className="shrink-0">
                     <QuantityStepper
                       quantity={item.qty}
-                      onDecrease={() => setQty(item.menuItemId, item.qty - 1)}
-                      onIncrease={() => setQty(item.menuItemId, item.qty + 1)}
+                      onDecrease={() => setQty(item.lineId ?? item.menuItemId, item.qty - 1)}
+                      onIncrease={() => setQty(item.lineId ?? item.menuItemId, item.qty + 1)}
                     />
                   </div>
                 </article>

@@ -21,7 +21,8 @@ interface CartContextValue {
   subtotal: number;
   setTable: (tableId: string) => void;
   addItem: (item: Omit<CartLineItem, "qty">) => void;
-  setQty: (menuItemId: string, qty: number) => void;
+  setQty: (lineId: string, qty: number) => void;
+  decreaseMenuItem: (menuItemId: string) => void;
   setNotes: (notes: string) => void;
   setCustomer: (customer: Partial<CustomerDraft>) => void;
   clearCart: () => void;
@@ -42,12 +43,18 @@ const sanitizeLineItem = (value: unknown): CartLineItem | null => {
   if (!value || typeof value !== "object") return null;
   const item = value as Partial<CartLineItem>;
   if (!item.menuItemId || !item.itemName || typeof item.unitPrice !== "number") return null;
+  const addons =
+    Array.isArray(item.addons) && item.addons.every((addon) => addon && typeof addon.name === "string" && typeof addon.price === "number")
+      ? item.addons.map((addon) => ({ name: addon.name, price: addon.price }))
+      : [];
   return {
     menuItemId: item.menuItemId,
     itemName: item.itemName,
     unitPrice: item.unitPrice,
     qty: typeof item.qty === "number" ? item.qty : 1,
     imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : null,
+    lineId: typeof item.lineId === "string" ? item.lineId : item.menuItemId,
+    addons,
   };
 };
 
@@ -58,7 +65,7 @@ const sanitizeStoredCart = (value: unknown): StoredCart => {
 
   Object.entries(rawItems).forEach(([key, item]) => {
     const sanitized = sanitizeLineItem(item);
-    if (sanitized) sanitizedItems[key] = sanitized;
+    if (sanitized) sanitizedItems[sanitized.lineId ?? key] = sanitized;
   });
 
   return {
@@ -111,31 +118,54 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       ),
     addItem: (item) =>
       setCart((current) => {
-        const existing = current.items[item.menuItemId];
+        const lineKey = item.lineId ?? item.menuItemId;
+        const existing = current.items[lineKey];
         const safeItem = sanitizeLineItem({ ...item, qty: 1 });
         if (!safeItem) return current;
         return {
           ...current,
           items: {
             ...current.items,
-            [safeItem.menuItemId]: {
+            [lineKey]: {
               ...safeItem,
+              lineId: lineKey,
               qty: existing ? existing.qty + 1 : 1,
             },
           },
         };
       }),
-    setQty: (menuItemId, qty) =>
+    setQty: (lineId, qty) =>
       setCart((current) => {
         if (qty <= 0) {
           const next = { ...current.items };
-          delete next[menuItemId];
+          delete next[lineId];
           return { ...current, items: next };
         }
 
-        const existing = current.items[menuItemId];
+        const existing = current.items[lineId];
         if (!existing) return current;
-        return { ...current, items: { ...current.items, [menuItemId]: { ...existing, qty } } };
+        return { ...current, items: { ...current.items, [lineId]: { ...existing, qty } } };
+      }),
+    decreaseMenuItem: (menuItemId) =>
+      setCart((current) => {
+        const matchingItems = Object.entries(current.items).filter(([, item]) => item.menuItemId === menuItemId);
+        if (!matchingItems.length) return current;
+
+        const lineToDecrease =
+          matchingItems.find(([, item]) => (item.addons?.length ?? 0) === 0)?.[0] ?? matchingItems[0][0];
+        const existing = current.items[lineToDecrease];
+        if (!existing) return current;
+
+        if (existing.qty <= 1) {
+          const next = { ...current.items };
+          delete next[lineToDecrease];
+          return { ...current, items: next };
+        }
+
+        return {
+          ...current,
+          items: { ...current.items, [lineToDecrease]: { ...existing, qty: existing.qty - 1 } },
+        };
       }),
     setNotes: (notes) => setCart((current) => ({ ...current, notes })),
     setCustomer: (customer) =>
