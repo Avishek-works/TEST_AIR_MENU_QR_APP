@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Image from "next/image";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
+import { getCategoryAddons } from "@/lib/addons";
 import {
-  ALL_CATEGORY,
   MENU_DEFAULT_IMAGE,
   enrichMenuItems,
   getProductImageUrl,
   resolveMenuImage,
   toTitleCaseLabel,
 } from "@/lib/menu-ui";
-import type { CategoryFilter, MenuCategory, MenuPresentationItem, RawMenuItem } from "@/lib/types";
+import type { AddonOption, MenuCategory, MenuPresentationItem, RawMenuItem } from "@/lib/types";
 
 interface MenuViewProps {
   tableNumber: string;
@@ -20,21 +22,49 @@ interface MenuViewProps {
   items: RawMenuItem[];
 }
 
+const sectionIdForCategory = (categoryId: string) => `menu-category-${categoryId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+const ABOVE_THE_FOLD_IMAGE_COUNT = 5;
+const IMAGE_PRELOAD_MARGIN = "260px 0px";
+
+const lineIdForItem = (itemId: string, addons: AddonOption[]) => {
+  if (!addons.length) return itemId;
+  const token = addons
+    .map((addon) => `${addon.name}:${addon.price}`)
+    .sort()
+    .join("|");
+  return `${itemId}::${token}`;
+};
+
 export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sort_order - b.sort_order),
     [categories],
   );
-  const [activeCategory, setActiveCategory] = useState<CategoryFilter>(ALL_CATEGORY);
   const [query, setQuery] = useState("");
   const [vegOnly, setVegOnly] = useState(false);
   const [nonVegOnly, setNonVegOnly] = useState(false);
   const [bestOnly, setBestOnly] = useState(false);
-  const { items: cartItems, addItem, setQty } = useCart();
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [customizingItem, setCustomizingItem] = useState<MenuPresentationItem | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
+  const [sectionScrollOffset, setSectionScrollOffset] = useState(132);
+  const { items: cartItems, addItem, decreaseMenuItem, setQty } = useCart();
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const stickyBarRef = useRef<HTMLDivElement | null>(null);
 
   const qtyById = useMemo(() => {
     const map = new Map<string, number>();
-    cartItems.forEach((item) => map.set(item.menuItemId, item.qty));
+    cartItems.forEach((item) => map.set(item.menuItemId, (map.get(item.menuItemId) ?? 0) + item.qty));
+    return map;
+  }, [cartItems]);
+
+  const plainLineByMenuId = useMemo(() => {
+    const map = new Map<string, { lineId: string; qty: number }>();
+    cartItems.forEach((item) => {
+      if ((item.addons?.length ?? 0) > 0) return;
+      const lineId = item.lineId ?? item.menuItemId;
+      map.set(item.menuItemId, { lineId, qty: item.qty });
+    });
     return map;
   }, [cartItems]);
 
@@ -44,7 +74,6 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     const normalizedQuery = query.trim().toLowerCase();
 
     return enrichedItems.filter((item) => {
-      if (activeCategory !== ALL_CATEGORY && item.category_id !== activeCategory) return false;
       if (vegOnly && !item.uiIsVeg) return false;
       if (nonVegOnly && !item.uiIsNonVeg) return false;
       if (bestOnly && !item.uiIsBestseller) return false;
@@ -52,7 +81,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
       if (!normalizedQuery) return true;
       return item.name.toLowerCase().includes(normalizedQuery) || (item.description ?? "").toLowerCase().includes(normalizedQuery);
     });
-  }, [activeCategory, bestOnly, enrichedItems, nonVegOnly, query, vegOnly]);
+  }, [bestOnly, enrichedItems, nonVegOnly, query, vegOnly]);
 
   const groupedItems = useMemo(() => {
     const categoryById = new Map(sortedCategories.map((category) => [category.id, category]));
@@ -84,16 +113,102 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     return orderedGroups;
   }, [filteredItems, sortedCategories]);
 
+  const visibleCategoryIds = useMemo(() => new Set(groupedItems.map((group) => group.id)), [groupedItems]);
+  const itemPositionById = useMemo(() => {
+    const positions = new Map<string, number>();
+    let index = 0;
+    groupedItems.forEach((group) => {
+      group.items.forEach((item) => {
+        if (!positions.has(item.id)) {
+          positions.set(item.id, index);
+          index += 1;
+        }
+      });
+    });
+    return positions;
+  }, [groupedItems]);
+
+  const selectedAddonList = useMemo(() => {
+    if (!customizingItem) return [];
+    const addons = getCategoryAddons(customizingItem.category_id);
+    return addons.filter((addon) => selectedAddons[`${addon.name}:${addon.price}`]);
+  }, [customizingItem, selectedAddons]);
+
+  useEffect(() => {
+    if (!groupedItems.length) {
+      setActiveSection(null);
+      return;
+    }
+    if (activeSection && visibleCategoryIds.has(activeSection)) return;
+    setActiveSection(groupedItems[0].id);
+  }, [activeSection, groupedItems, visibleCategoryIds]);
+
+  useEffect(() => {
+    const stickyElement = stickyBarRef.current;
+    if (!stickyElement || typeof window === "undefined") return;
+
+    const updateOffset = () => {
+      const nextOffset = Math.ceil(stickyElement.getBoundingClientRect().height) + 20;
+      setSectionScrollOffset((current) => (current === nextOffset ? current : nextOffset));
+    };
+
+    updateOffset();
+    const observer = new ResizeObserver(updateOffset);
+    observer.observe(stickyElement);
+    window.addEventListener("resize", updateOffset);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateOffset);
+    };
+  }, [sortedCategories.length, visibleCategoryIds.size]);
+
+  const scrollToCategory = (categoryId: string) => {
+    const section = sectionRefs.current[categoryId];
+    if (!section) return;
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveSection(categoryId);
+  };
+
+  const openCustomizerForItem = (item: MenuPresentationItem) => {
+    if (getCategoryAddons(item.category_id).length === 0) {
+      addItem({
+        menuItemId: item.id,
+        lineId: item.id,
+        itemName: item.name,
+        unitPrice: item.price,
+        imageUrl: item.uiImage,
+      });
+      return;
+    }
+    setCustomizingItem(item);
+    setSelectedAddons({});
+  };
+
+  const confirmCustomization = () => {
+    if (!customizingItem) return;
+    const addons = selectedAddonList;
+    const addonTotal = addons.reduce((sum, addon) => sum + addon.price, 0);
+    addItem({
+      menuItemId: customizingItem.id,
+      lineId: lineIdForItem(customizingItem.id, addons),
+      itemName: customizingItem.name,
+      unitPrice: customizingItem.price + addonTotal,
+      imageUrl: customizingItem.uiImage,
+      addons,
+    });
+    setCustomizingItem(null);
+    setSelectedAddons({});
+  };
+
   return (
     <section>
-      {/* Header */}
       <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg-surface)] p-4 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.55)]">
         <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">Table {tableNumber}</p>
         <h1 className="mt-1.5 text-2xl font-semibold text-[var(--text-primary)] tracking-tight">Order Menu</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">Select your picks from the table.</p>
       </div>
 
-      {/* Search + Filters */}
       <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-3 shadow-[0_6px_20px_-12px_rgba(0,0,0,0.45)]">
         <div className="relative">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] text-sm select-none">
@@ -107,24 +222,6 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
           />
         </div>
 
-        {/* Category chips */}
-        <div className="mt-3 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <CategoryChip
-            active={activeCategory === ALL_CATEGORY}
-            label="All"
-            onClick={() => setActiveCategory(ALL_CATEGORY)}
-          />
-          {sortedCategories.map((category) => (
-            <CategoryChip
-              key={category.id}
-              active={activeCategory === category.id}
-              label={toTitleCaseLabel(category.name)}
-              onClick={() => setActiveCategory(category.id)}
-            />
-          ))}
-        </div>
-
-        {/* Filter pills */}
         <div className="mt-2 flex gap-2 overflow-x-auto whitespace-nowrap scroll-smooth pb-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <FilterButton
             label="Veg"
@@ -150,14 +247,40 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
         </div>
       </div>
 
+      <div
+        ref={stickyBarRef}
+        className="sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-2 shadow-[0_10px_24px_-16px_rgba(0,0,0,0.65)]"
+      >
+        <div className="flex flex-wrap gap-2">
+          {sortedCategories
+            .filter((category) => visibleCategoryIds.has(category.id))
+            .map((category) => (
+              <CategoryChip
+                key={category.id}
+                active={activeSection === category.id}
+                label={toTitleCaseLabel(category.name)}
+                onClick={() => scrollToCategory(category.id)}
+              />
+            ))}
+        </div>
+      </div>
+
       {filteredItems.length === 0 ? (
         <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-6 text-center">
           <p className="text-sm text-[var(--text-secondary)]">No items match your filters.</p>
         </div>
       ) : (
-        <div className="mt-4 space-y-4 pb-4">
+        <div className="mt-4 space-y-5 pb-4">
           {groupedItems.map((group) => (
-            <section key={group.id} className="space-y-2.5">
+            <section
+              key={group.id}
+              id={sectionIdForCategory(group.id)}
+              ref={(node) => {
+                sectionRefs.current[group.id] = node;
+              }}
+              style={{ scrollMarginTop: `${sectionScrollOffset}px` }}
+              className="space-y-2.5"
+            >
               <div className="flex items-center gap-3 px-1">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--accent-gold)]">
                   {group.label}
@@ -172,15 +295,20 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
                     key={item.id}
                     item={item}
                     qty={qty}
-                    onAdd={() =>
-                      addItem({
-                        menuItemId: item.id,
-                        itemName: item.name,
-                        unitPrice: item.price,
-                        imageUrl: item.uiImage,
-                      })
-                    }
-                    onDecrease={() => setQty(item.id, qty - 1)}
+                    position={itemPositionById.get(item.id) ?? Number.MAX_SAFE_INTEGER}
+                    onAdd={() => openCustomizerForItem(item)}
+                    onDecrease={() => {
+                      if (qty <= 1) {
+                        decreaseMenuItem(item.id);
+                        return;
+                      }
+                      const plainLine = plainLineByMenuId.get(item.id);
+                      if (plainLine) {
+                        setQty(plainLine.lineId, plainLine.qty - 1);
+                        return;
+                      }
+                      decreaseMenuItem(item.id);
+                    }}
                   />
                 );
               })}
@@ -188,37 +316,53 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
           ))}
         </div>
       )}
+
+      {customizingItem ? (
+        <AddonCustomizerSheet
+          item={customizingItem}
+          selected={selectedAddons}
+          onChange={(next) => setSelectedAddons(next)}
+          onClose={() => {
+            setCustomizingItem(null);
+            setSelectedAddons({});
+          }}
+          onConfirm={confirmCustomization}
+        />
+      ) : null}
     </section>
   );
 }
 
-/* ─── Menu Item Card ─────────────────────────────────────────────────── */
-
-function MenuItemCard({
+const MenuItemCard = memo(function MenuItemCard({
   item,
   qty,
+  position,
   onAdd,
   onDecrease,
 }: {
   item: MenuPresentationItem;
   qty: number;
+  position: number;
   onAdd: () => void;
   onDecrease: () => void;
 }) {
-  const imageSrc = item.image_url ? getProductImageUrl(item.image_url) : item.uiImage || "/placeholder.png";
+  const imageSrc = useMemo(
+    () => (item.image_url ? getProductImageUrl(item.image_url) : item.uiImage || "/placeholder.png"),
+    [item.image_url, item.uiImage],
+  );
+  const prioritizeLoad = position < ABOVE_THE_FOLD_IMAGE_COUNT;
 
   return (
     <article className="group flex items-center gap-3 rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg-surface)] p-3 transition duration-200 hover:border-[var(--border-warm)] hover:shadow-[0_12px_36px_-18px_rgba(0,0,0,0.55)] hover:-translate-y-[0.5px]">
-      {/* Image */}
       <div className="relative h-[80px] w-[80px] shrink-0 overflow-hidden rounded-3xl bg-[#1C140C] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),0_10px_24px_-16px_rgba(0,0,0,0.45)]">
         <MenuItemImage
           src={imageSrc}
           alt={item.name}
           categoryId={item.category_id}
+          prioritizeLoad={prioritizeLoad}
         />
       </div>
 
-      {/* Info */}
       <div className="min-w-0 flex-1">
         <h3 className="line-clamp-1 text-sm font-semibold text-[var(--text-primary)] leading-snug">
           {toTitleCaseLabel(item.name)}
@@ -236,7 +380,6 @@ function MenuItemCard({
         </div>
       </div>
 
-      {/* Qty stepper */}
       <div className="shrink-0">
         <QuantityStepper
           quantity={qty}
@@ -246,56 +389,200 @@ function MenuItemCard({
       </div>
     </article>
   );
+}, areMenuItemCardPropsEqual);
+
+function areMenuItemCardPropsEqual(
+  previous: Readonly<{
+    item: MenuPresentationItem;
+    qty: number;
+    position: number;
+    onAdd: () => void;
+    onDecrease: () => void;
+  }>,
+  next: Readonly<{
+    item: MenuPresentationItem;
+    qty: number;
+    position: number;
+    onAdd: () => void;
+    onDecrease: () => void;
+  }>,
+) {
+  return previous.item === next.item && previous.qty === next.qty && previous.position === next.position;
 }
 
-/* ─── Menu Item Image with fallback ────────────────────────────────────── */
+function AddonCustomizerSheet({
+  item,
+  selected,
+  onChange,
+  onClose,
+  onConfirm,
+}: {
+  item: MenuPresentationItem;
+  selected: Record<string, boolean>;
+  onChange: (next: Record<string, boolean>) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const addons = getCategoryAddons(item.category_id);
+  const selectedPrice = addons.reduce((sum, addon) => sum + (selected[`${addon.name}:${addon.price}`] ? addon.price : 0), 0);
+  const finalPrice = item.price + selectedPrice;
 
-function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; categoryId: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-2 pb-0 sm:px-4 sm:pb-4">
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute inset-0"
+        aria-label="Close customization"
+      />
+      <section className="relative w-full max-w-[32rem] rounded-t-3xl border border-[var(--border)] bg-[var(--bg-surface)] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-14px_36px_-20px_rgba(0,0,0,0.8)] sm:rounded-3xl sm:p-5 sm:pb-5">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-secondary)]">Customize</p>
+        <h3 className="mt-1 text-base font-semibold text-[var(--text-primary)]">{toTitleCaseLabel(item.name)}</h3>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">Select optional add-ons</p>
+
+        <div className="mt-3 space-y-2">
+          {addons.map((addon) => {
+            const key = `${addon.name}:${addon.price}`;
+            const checked = Boolean(selected[key]);
+            return (
+              <label
+                key={key}
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2.5 transition-colors duration-150 hover:border-[var(--border-warm)]"
+              >
+                <span className="flex items-center gap-2.5 text-sm text-[var(--text-primary)]">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onChange({ ...selected, [key]: !checked })}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-[var(--border-warm)] accent-[var(--accent-gold)]"
+                  />
+                  {addon.name}
+                </span>
+                <span className="text-sm font-semibold text-[var(--accent-gold)]">+{formatCurrency(addon.price)}</span>
+              </label>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-ghost inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] text-sm font-semibold text-[var(--text-secondary)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="btn-gold inline-flex h-11 items-center justify-center rounded-xl text-sm font-semibold shadow-[0_4px_14px_rgba(252,176,58,0.25)]"
+          >
+            Add {formatCurrency(finalPrice)}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MenuItemImage({
+  src,
+  alt,
+  categoryId,
+  prioritizeLoad,
+}: {
+  src: string;
+  alt: string;
+  categoryId: string;
+  prioritizeLoad: boolean;
+}) {
   const [imgSrc, setImgSrc] = useState(src || "/placeholder.png");
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(prioritizeLoad);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setImgSrc(src || "/placeholder.png");
+    setIsLoaded(false);
+    if (prioritizeLoad) {
+      setIsNearViewport(true);
+    }
+  }, [prioritizeLoad, src]);
+
+  useEffect(() => {
+    if (prioritizeLoad || isNearViewport) return;
+    const target = rootRef.current;
+    if (!target || typeof window === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { root: null, rootMargin: IMAGE_PRELOAD_MARGIN, threshold: 0.01 },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [isNearViewport, prioritizeLoad]);
 
   const handleError = () => {
     if (imgSrc !== MENU_DEFAULT_IMAGE) {
-      // Try to fall back to category image, then default
-      const fallback = resolveMenuImage({ id: "", name: "", category_id: categoryId, description: null, image_url: null, price: 0, is_veg: false, is_non_veg: false, is_bestseller: false, active: true });
+      const fallback = resolveMenuImage({
+        id: "",
+        name: "",
+        category_id: categoryId,
+        description: null,
+        image_url: null,
+        price: 0,
+        is_veg: false,
+        is_non_veg: false,
+        is_bestseller: false,
+        active: true,
+      });
       setImgSrc(fallback !== src ? fallback : MENU_DEFAULT_IMAGE);
+      setIsLoaded(false);
     }
   };
 
   return (
-    <img
-      src={imgSrc}
-      alt={alt}
-      width={80}
-      height={80}
-      loading="lazy"
-      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-      onError={handleError}
-    />
+    <div ref={rootRef} className="relative h-full w-full">
+      {!isLoaded ? <Skeleton className="absolute inset-0 rounded-none" /> : null}
+      {isNearViewport ? (
+        <Image
+          src={imgSrc}
+          alt={alt}
+          fill
+          sizes="80px"
+          loading={prioritizeLoad ? "eager" : "lazy"}
+          priority={prioritizeLoad}
+          className={`object-cover transition-transform duration-300 group-hover:scale-105 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setIsLoaded(true)}
+          onError={handleError}
+        />
+      ) : null}
+    </div>
   );
 }
-
-/* ─── Category Chip ──────────────────────────────────────────────────── */
 
 function CategoryChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`relative shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
+      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
         active
           ? "border-[var(--accent-gold)] bg-[var(--bg-elevated)] text-[var(--accent-gold)] shadow-[0_0_8px_rgba(252,176,58,0.14)]"
           : "border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-warm)] hover:text-[var(--text-primary)]"
       }`}
     >
       {label}
-      {active && (
-        <span className="absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-[var(--accent-gold)] transition-all duration-200" />
-      )}
     </button>
   );
 }
-
-/* ─── Filter Button ──────────────────────────────────────────────────── */
 
 function FilterButton({
   label,
@@ -323,8 +610,6 @@ function FilterButton({
     </button>
   );
 }
-
-/* ─── Badge ──────────────────────────────────────────────────────────── */
 
 function Badge({ label, color }: { label: string; color: "green" | "red" | "gold" }) {
   const styles = {

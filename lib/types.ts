@@ -29,12 +29,19 @@ export type MenuImageByIdMap = Record<string, string>;
 export type MenuImageBySlugMap = Record<string, string>;
 export type MenuImageByCategoryMap = Record<string, string>;
 
+export interface AddonOption {
+  name: string;
+  price: number;
+}
+
 export interface CartLineItem {
   menuItemId: string;
   itemName: string;
   qty: number;
   unitPrice: number;
   imageUrl?: string | null;
+  lineId?: string;
+  addons?: AddonOption[];
 }
 
 export interface CustomerDraft {

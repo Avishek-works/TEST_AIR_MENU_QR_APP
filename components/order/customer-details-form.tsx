@@ -29,6 +29,16 @@ function getTodayDateValue() {
   return `${year}-${month}-${day}`;
 }
 
+function buildOrderNotes(baseNotes: string, items: { itemName: string; qty: number; addons?: { name: string }[] }[]) {
+  const addonLines = items
+    .filter((item) => (item.addons?.length ?? 0) > 0)
+    .map((item) => `${item.itemName} x${item.qty}: ${(item.addons ?? []).map((addon) => addon.name).join(", ")}`);
+
+  if (!addonLines.length) return baseNotes;
+  const addonBlock = `Add-ons: ${addonLines.join(" | ")}`;
+  return baseNotes.trim() ? `${baseNotes.trim()} | ${addonBlock}` : addonBlock;
+}
+
 export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: string; allowOrderNotes: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -207,13 +217,14 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
     }
 
     startTransition(async () => {
+      const combinedNotes = allowOrderNotes ? buildOrderNotes(notes, items) : buildOrderNotes("", items);
       const result = await placeOrderAction({
         tableNumber: tableId,
         customerName: customer.name,
         customerPhone: customer.phone,
         customerEmail: customer.email,
         customerDob: customer.dob,
-        notes: allowOrderNotes ? notes : undefined,
+        notes: combinedNotes || undefined,
         items,
       });
 
