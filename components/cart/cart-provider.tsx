@@ -43,17 +43,37 @@ const sanitizeLineItem = (value: unknown): CartLineItem | null => {
   if (!value || typeof value !== "object") return null;
   const item = value as Partial<CartLineItem>;
   if (!item.menuItemId || !item.itemName || typeof item.unitPrice !== "number") return null;
-  const addons =
-    Array.isArray(item.addons) && item.addons.every((addon) => addon && typeof addon.name === "string" && typeof addon.price === "number")
-      ? item.addons.map((addon) => ({ name: addon.name, price: addon.price }))
-      : [];
+  const normalizedMenuItemId = item.menuItemId.trim();
+  const normalizedItemName = item.itemName.trim();
+  if (!normalizedMenuItemId || !normalizedItemName) return null;
+  if (!Number.isFinite(item.unitPrice) || item.unitPrice < 0) return null;
+
+  const normalizedQty = Math.trunc(typeof item.qty === "number" ? item.qty : 1);
+  if (!Number.isFinite(normalizedQty) || normalizedQty <= 0) return null;
+
+  const addons = Array.isArray(item.addons)
+    ? item.addons
+        .filter(
+          (addon): addon is { name: string; price: number } =>
+            Boolean(addon) &&
+            typeof addon.name === "string" &&
+            addon.name.trim().length > 0 &&
+            typeof addon.price === "number" &&
+            Number.isFinite(addon.price) &&
+            addon.price >= 0,
+        )
+        .map((addon) => ({ name: addon.name.trim(), price: addon.price }))
+    : [];
+
+  const lineId = typeof item.lineId === "string" && item.lineId.trim().length > 0 ? item.lineId.trim() : normalizedMenuItemId;
+
   return {
-    menuItemId: item.menuItemId,
-    itemName: item.itemName,
+    menuItemId: normalizedMenuItemId,
+    itemName: normalizedItemName,
     unitPrice: item.unitPrice,
-    qty: typeof item.qty === "number" ? item.qty : 1,
+    qty: normalizedQty,
     imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : null,
-    lineId: typeof item.lineId === "string" ? item.lineId : item.menuItemId,
+    lineId,
     addons,
   };
 };
@@ -118,7 +138,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       ),
     addItem: (item) =>
       setCart((current) => {
-        const lineKey = item.lineId ?? item.menuItemId;
+        const lineKey = (item.lineId ?? item.menuItemId).trim() || item.menuItemId;
         const existing = current.items[lineKey];
         const safeItem = sanitizeLineItem({ ...item, qty: 1 });
         if (!safeItem) return current;
@@ -151,8 +171,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const matchingItems = Object.entries(current.items).filter(([, item]) => item.menuItemId === menuItemId);
         if (!matchingItems.length) return current;
 
+        const plainLine = matchingItems.find(([, item]) => (item.addons?.length ?? 0) === 0)?.[0];
         const lineToDecrease =
-          matchingItems.find(([, item]) => (item.addons?.length ?? 0) === 0)?.[0] ?? matchingItems[0][0];
+          plainLine ??
+          matchingItems
+            .map(([lineId]) => lineId)
+            .sort((left, right) => left.localeCompare(right))[0];
         const existing = current.items[lineToDecrease];
         if (!existing) return current;
 

@@ -43,12 +43,24 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [customizingItem, setCustomizingItem] = useState<MenuPresentationItem | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<Record<string, boolean>>({});
+  const [sectionScrollOffset, setSectionScrollOffset] = useState(132);
   const { items: cartItems, addItem, decreaseMenuItem, setQty } = useCart();
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const stickyBarRef = useRef<HTMLDivElement | null>(null);
 
   const qtyById = useMemo(() => {
     const map = new Map<string, number>();
     cartItems.forEach((item) => map.set(item.menuItemId, (map.get(item.menuItemId) ?? 0) + item.qty));
+    return map;
+  }, [cartItems]);
+
+  const plainLineByMenuId = useMemo(() => {
+    const map = new Map<string, { lineId: string; qty: number }>();
+    cartItems.forEach((item) => {
+      if ((item.addons?.length ?? 0) > 0) return;
+      const lineId = item.lineId ?? item.menuItemId;
+      map.set(item.menuItemId, { lineId, qty: item.qty });
+    });
     return map;
   }, [cartItems]);
 
@@ -113,6 +125,26 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
     if (activeSection && visibleCategoryIds.has(activeSection)) return;
     setActiveSection(groupedItems[0].id);
   }, [activeSection, groupedItems, visibleCategoryIds]);
+
+  useEffect(() => {
+    const stickyElement = stickyBarRef.current;
+    if (!stickyElement || typeof window === "undefined") return;
+
+    const updateOffset = () => {
+      const nextOffset = Math.ceil(stickyElement.getBoundingClientRect().height) + 20;
+      setSectionScrollOffset((current) => (current === nextOffset ? current : nextOffset));
+    };
+
+    updateOffset();
+    const observer = new ResizeObserver(updateOffset);
+    observer.observe(stickyElement);
+    window.addEventListener("resize", updateOffset);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateOffset);
+    };
+  }, [sortedCategories.length, visibleCategoryIds.size]);
 
   const scrollToCategory = (categoryId: string) => {
     const section = sectionRefs.current[categoryId];
@@ -198,7 +230,10 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
         </div>
       </div>
 
-      <div className="sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 mt-3 rounded-2xl border border-[var(--border)] bg-[color-mix(in_oklab,var(--bg-surface)_88%,transparent)] p-2.5 shadow-[0_10px_24px_-16px_rgba(0,0,0,0.65)] backdrop-blur-md">
+      <div
+        ref={stickyBarRef}
+        className="sticky top-[calc(env(safe-area-inset-top)+0.5rem)] z-30 mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-2 shadow-[0_10px_24px_-16px_rgba(0,0,0,0.65)]"
+      >
         <div className="flex flex-wrap gap-2">
           {sortedCategories
             .filter((category) => visibleCategoryIds.has(category.id))
@@ -226,7 +261,8 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
               ref={(node) => {
                 sectionRefs.current[group.id] = node;
               }}
-              className="space-y-2.5 scroll-mt-28"
+              style={{ scrollMarginTop: `${sectionScrollOffset}px` }}
+              className="space-y-2.5"
             >
               <div className="flex items-center gap-3 px-1">
                 <h2 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--accent-gold)]">
@@ -248,12 +284,9 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
                         decreaseMenuItem(item.id);
                         return;
                       }
-                      const plainLine = cartItems.find(
-                        (line) => line.menuItemId === item.id && (line.addons?.length ?? 0) === 0,
-                      );
+                      const plainLine = plainLineByMenuId.get(item.id);
                       if (plainLine) {
-                        const lineKey = plainLine.lineId ?? plainLine.menuItemId;
-                        setQty(lineKey, plainLine.qty - 1);
+                        setQty(plainLine.lineId, plainLine.qty - 1);
                         return;
                       }
                       decreaseMenuItem(item.id);
