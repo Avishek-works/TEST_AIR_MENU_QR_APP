@@ -112,16 +112,48 @@ body::-webkit-scrollbar-thumb:hover {
 .home-hero-root {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+}
+
+.home-ambient-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.home-ambient-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.12) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 78% 66%, rgba(252, 176, 58, 0.09) 0.6px, transparent 0.95px),
+    linear-gradient(145deg, rgba(255, 245, 228, 0.02), transparent 45%);
+  background-size: 4px 4px, 5px 5px, 100% 100%;
 }
 
 .home-ambient-glow {
   position: absolute;
-  inset: auto -20% 8% -20%;
-  height: 38%;
-  opacity: 0.28;
+  border-radius: 9999px;
+  opacity: 0.16;
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(252, 176, 58, 0.18) 0%, rgba(252, 176, 58, 0.05) 45%, transparent 75%);
-  animation: ambientFloat 7s ease-in-out infinite;
+}
+
+.home-ambient-glow-1 {
+  inset: auto -20% 7% -26%;
+  height: 54%;
+  background: radial-gradient(ellipse at center, rgba(252, 176, 58, 0.22) 0%, rgba(252, 176, 58, 0.08) 46%, transparent 78%);
+  animation: ambientDriftA 16s ease-in-out infinite;
+}
+
+.home-ambient-glow-2 {
+  inset: -16% -24% auto -10%;
+  height: 52%;
+  background: radial-gradient(ellipse at center, rgba(255, 216, 148, 0.12) 0%, rgba(252, 176, 58, 0.04) 48%, transparent 82%);
+  animation: ambientDriftB 20s ease-in-out infinite;
 }
 
 .home-steam,
@@ -129,53 +161,105 @@ body::-webkit-scrollbar-thumb:hover {
   position: absolute;
   pointer-events: none;
   user-select: none;
-  will-change: transform, opacity;
+  z-index: 1;
 }
 
 .home-steam {
-  color: rgba(255, 255, 255, 0.12);
-  font-size: 1rem;
-  animation: steamRise 6.2s ease-in-out infinite;
+  width: 82px;
+  height: 132px;
+  border-radius: 9999px;
+  background: radial-gradient(ellipse at center, rgba(255, 244, 226, 0.20) 0%, rgba(255, 224, 175, 0.09) 36%, transparent 72%);
+  opacity: 0;
+  animation: steamRise 8.4s ease-in-out infinite;
 }
 
 .home-steam-1 {
-  right: 18%;
-  bottom: 12%;
+  right: 8%;
+  bottom: 19%;
+  animation-delay: 0.4s;
 }
 
 .home-steam-2 {
-  left: 14%;
-  bottom: 10%;
-  animation-delay: 1.4s;
+  left: 8%;
+  bottom: 17%;
+  animation-delay: 2.1s;
+}
+
+.home-steam-3 {
+  left: 46%;
+  bottom: 13%;
+  animation-delay: 3.6s;
 }
 
 .home-bean {
-  color: rgba(252, 176, 58, 0.22);
-  font-size: 0.42rem;
-  animation: beanFloat 8s ease-in-out infinite;
+  width: 11px;
+  height: 16px;
+  fill: rgba(252, 176, 58, 0.22);
+  stroke: rgba(255, 235, 195, 0.3);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+  animation: beanFloat 12s ease-in-out infinite;
 }
 
 .home-bean-1 {
-  top: 14%;
-  right: 16%;
+  top: 15%;
+  right: 14%;
+  animation-delay: 0.5s;
 }
 
 .home-bean-2 {
-  top: 22%;
+  top: 26%;
   left: 12%;
-  animation-delay: 1.8s;
+  animation-delay: 2.8s;
+}
+
+.home-bean-3 {
+  top: 10%;
+  left: 46%;
+  animation-delay: 4.2s;
 }
 
 .home-card-fade-up {
-  animation: fadeUpEnter 620ms cubic-bezier(0.2, 0.7, 0.18, 1) both;
+  animation: cardIntro 620ms cubic-bezier(0.2, 0.7, 0.18, 1) both;
+}
+
+.home-welcome-card {
+  z-index: 2;
+  box-shadow:
+    0 40px 75px -38px var(--shadow-deep),
+    0 26px 54px -40px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 241, 214, 0.08);
+}
+
+.home-welcome-card::before,
+.home-welcome-card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.home-welcome-card::before {
+  inset: -1px;
+  border: 1px solid rgba(252, 176, 58, 0.14);
+  opacity: 0.65;
+}
+
+.home-welcome-card::after {
+  inset: -14% -12%;
+  background: radial-gradient(ellipse at center, rgba(252, 176, 58, 0.15) 0%, rgba(252, 176, 58, 0.06) 30%, transparent 72%);
+  opacity: 0.5;
+  z-index: -1;
 }
 
 .home-reveal-delay-1,
 .home-reveal-delay-2,
 .home-reveal-delay-3,
-.home-reveal-delay-4 {
+.home-reveal-delay-4,
+.home-reveal-delay-5,
+.home-reveal-delay-6 {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translate3d(0, 8px, 0);
   animation: fadeUpEnter 540ms ease-out both;
 }
 
@@ -183,17 +267,25 @@ body::-webkit-scrollbar-thumb:hover {
 .home-reveal-delay-2 { animation-delay: 150ms; }
 .home-reveal-delay-3 { animation-delay: 230ms; }
 .home-reveal-delay-4 { animation-delay: 300ms; }
+.home-reveal-delay-5 { animation-delay: 380ms; }
+.home-reveal-delay-6 { animation-delay: 430ms; }
 
 .home-premium-button {
-  transition: transform 180ms ease, box-shadow 220ms ease, filter 180ms ease;
+  transform: translateZ(0);
+  transition: transform 170ms ease, box-shadow 240ms ease, filter 220ms ease, background-color 220ms ease, border-color 220ms ease;
 }
 
 .home-premium-button:hover {
-  transform: translateY(-0.5px) scale(1.01);
+  transform: translate3d(0, -1px, 0) scale(1.01);
+  box-shadow: 0 18px 30px -22px rgba(252, 176, 58, 0.44);
 }
 
 .home-premium-button:active {
-  transform: scale(0.985);
+  transform: translate3d(0, 0, 0) scale(0.985);
+}
+
+.home-premium-button:focus-visible {
+  box-shadow: 0 0 0 2px rgba(252, 176, 58, 0.18), 0 12px 28px -20px rgba(252, 176, 58, 0.45);
 }
 
 .skeleton {
@@ -225,47 +317,80 @@ body::-webkit-scrollbar-thumb:hover {
 @keyframes fadeUpEnter {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translate3d(0, 14px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes cardIntro {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.985);
+  }
+  75% {
+    opacity: 1;
+    transform: translate3d(0, -1px, 0) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 @keyframes steamRise {
-  0%, 100% {
+  0% {
     opacity: 0;
-    transform: translate3d(0, 6px, 0) scale(0.95);
+    transform: translate3d(0, 10px, 0) scale(0.88);
   }
-  30% {
-    opacity: 0.42;
+  22% {
+    opacity: 0.17;
   }
-  70% {
-    opacity: 0.2;
-    transform: translate3d(0, -10px, 0) scale(1.04);
+  55% {
+    opacity: 0.26;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -34px, 0) scale(1.12);
   }
 }
 
 @keyframes beanFloat {
   0%, 100% {
-    opacity: 0.1;
+    opacity: 0.08;
     transform: translate3d(0, 0, 0);
   }
-  45% {
-    opacity: 0.28;
-    transform: translate3d(0, -5px, 0);
+  30% {
+    opacity: 0.22;
+    transform: translate3d(-2px, -4px, 0);
+  }
+  65% {
+    opacity: 0.16;
+    transform: translate3d(2px, -7px, 0);
   }
 }
 
-@keyframes ambientFloat {
+@keyframes ambientDriftA {
   0%, 100% {
-    transform: translateY(0);
-    opacity: 0.24;
+    transform: translate3d(-2%, 2%, 0) scale(1);
+    opacity: 0.14;
   }
   50% {
-    transform: translateY(-6px);
-    opacity: 0.34;
+    transform: translate3d(2%, -3%, 0) scale(1.05);
+    opacity: 0.22;
+  }
+}
+
+@keyframes ambientDriftB {
+  0%, 100% {
+    transform: translate3d(2%, -2%, 0) scale(1.01);
+    opacity: 0.11;
+  }
+  50% {
+    transform: translate3d(-2%, 2%, 0) scale(1.06);
+    opacity: 0.19;
   }
 }
 
