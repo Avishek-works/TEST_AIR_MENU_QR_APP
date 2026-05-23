@@ -122,12 +122,24 @@ body::-webkit-scrollbar-thumb:hover {
   pointer-events: none;
 }
 
+.home-ambient-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.12) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 78% 66%, rgba(252, 176, 58, 0.09) 0.6px, transparent 0.95px),
+    linear-gradient(145deg, rgba(255, 245, 228, 0.02), transparent 45%);
+  background-size: 4px 4px, 5px 5px, 100% 100%;
+}
+
 .home-ambient-glow {
   position: absolute;
   border-radius: 9999px;
   opacity: 0.16;
   pointer-events: none;
-  will-change: transform, opacity;
 }
 
 .home-ambient-glow-1 {
@@ -149,7 +161,6 @@ body::-webkit-scrollbar-thumb:hover {
   position: absolute;
   pointer-events: none;
   user-select: none;
-  will-change: transform, opacity;
   z-index: 1;
 }
 
@@ -181,8 +192,12 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .home-bean {
-  color: rgba(252, 176, 58, 0.22);
-  font-size: 0.65rem;
+  width: 11px;
+  height: 16px;
+  fill: rgba(252, 176, 58, 0.22);
+  stroke: rgba(255, 235, 195, 0.3);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
   animation: beanFloat 12s ease-in-out infinite;
 }
 

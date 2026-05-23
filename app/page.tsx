@@ -20,9 +20,18 @@ export default function Home() {
       <div aria-hidden className="home-steam home-steam-1" />
       <div aria-hidden className="home-steam home-steam-2" />
       <div aria-hidden className="home-steam home-steam-3" />
-      <div aria-hidden className="home-bean home-bean-1">◦</div>
-      <div aria-hidden className="home-bean home-bean-2">◦</div>
-      <div aria-hidden className="home-bean home-bean-3">◦</div>
+      <svg aria-hidden className="home-bean home-bean-1" viewBox="0 0 28 40" focusable="false">
+        <path d="M14 2C7.4 2 2 7.8 2 14.9c0 10.1 8.4 20.7 12 22.9 3.6-2.2 12-12.8 12-22.9C26 7.8 20.6 2 14 2Z" />
+        <path d="M17.7 6.5c-2.2 2.8-4.1 6.4-4.1 10.4 0 5.2 2.6 9.9 4.7 13.2" />
+      </svg>
+      <svg aria-hidden className="home-bean home-bean-2" viewBox="0 0 28 40" focusable="false">
+        <path d="M14 2C7.4 2 2 7.8 2 14.9c0 10.1 8.4 20.7 12 22.9 3.6-2.2 12-12.8 12-22.9C26 7.8 20.6 2 14 2Z" />
+        <path d="M17.7 6.5c-2.2 2.8-4.1 6.4-4.1 10.4 0 5.2 2.6 9.9 4.7 13.2" />
+      </svg>
+      <svg aria-hidden className="home-bean home-bean-3" viewBox="0 0 28 40" focusable="false">
+        <path d="M14 2C7.4 2 2 7.8 2 14.9c0 10.1 8.4 20.7 12 22.9 3.6-2.2 12-12.8 12-22.9C26 7.8 20.6 2 14 2Z" />
+        <path d="M17.7 6.5c-2.2 2.8-4.1 6.4-4.1 10.4 0 5.2 2.6 9.9 4.7 13.2" />
+      </svg>
 
       <div className="home-welcome-card home-card-fade-up relative rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
         {/* Brand mark */}
