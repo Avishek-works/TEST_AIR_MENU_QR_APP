@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { QuantityStepper } from "@/components/ui/quantity-stepper";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { getCategoryAddons } from "@/lib/addons";
 import {
@@ -21,6 +23,8 @@ interface MenuViewProps {
 }
 
 const sectionIdForCategory = (categoryId: string) => `menu-category-${categoryId.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+const ABOVE_THE_FOLD_IMAGE_COUNT = 5;
+const IMAGE_PRELOAD_MARGIN = "260px 0px";
 
 const lineIdForItem = (itemId: string, addons: AddonOption[]) => {
   if (!addons.length) return itemId;
@@ -110,6 +114,19 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
   }, [filteredItems, sortedCategories]);
 
   const visibleCategoryIds = useMemo(() => new Set(groupedItems.map((group) => group.id)), [groupedItems]);
+  const itemPositionById = useMemo(() => {
+    const positions = new Map<string, number>();
+    let index = 0;
+    groupedItems.forEach((group) => {
+      group.items.forEach((item) => {
+        if (!positions.has(item.id)) {
+          positions.set(item.id, index);
+          index += 1;
+        }
+      });
+    });
+    return positions;
+  }, [groupedItems]);
 
   const selectedAddonList = useMemo(() => {
     if (!customizingItem) return [];
@@ -278,6 +295,7 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
                     key={item.id}
                     item={item}
                     qty={qty}
+                    position={itemPositionById.get(item.id) ?? Number.MAX_SAFE_INTEGER}
                     onAdd={() => openCustomizerForItem(item)}
                     onDecrease={() => {
                       if (qty <= 1) {
@@ -315,18 +333,24 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
   );
 }
 
-function MenuItemCard({
+const MenuItemCard = memo(function MenuItemCard({
   item,
   qty,
+  position,
   onAdd,
   onDecrease,
 }: {
   item: MenuPresentationItem;
   qty: number;
+  position: number;
   onAdd: () => void;
   onDecrease: () => void;
 }) {
-  const imageSrc = item.image_url ? getProductImageUrl(item.image_url) : item.uiImage || "/placeholder.png";
+  const imageSrc = useMemo(
+    () => (item.image_url ? getProductImageUrl(item.image_url) : item.uiImage || "/placeholder.png"),
+    [item.image_url, item.uiImage],
+  );
+  const prioritizeLoad = position < ABOVE_THE_FOLD_IMAGE_COUNT;
 
   return (
     <article className="group flex items-center gap-3 rounded-[1.75rem] border border-[var(--border)] bg-[var(--bg-surface)] p-3 transition duration-200 hover:border-[var(--border-warm)] hover:shadow-[0_12px_36px_-18px_rgba(0,0,0,0.55)] hover:-translate-y-[0.5px]">
@@ -335,6 +359,7 @@ function MenuItemCard({
           src={imageSrc}
           alt={item.name}
           categoryId={item.category_id}
+          prioritizeLoad={prioritizeLoad}
         />
       </div>
 
@@ -364,6 +389,25 @@ function MenuItemCard({
       </div>
     </article>
   );
+}, areMenuItemCardPropsEqual);
+
+function areMenuItemCardPropsEqual(
+  previous: Readonly<{
+    item: MenuPresentationItem;
+    qty: number;
+    position: number;
+    onAdd: () => void;
+    onDecrease: () => void;
+  }>,
+  next: Readonly<{
+    item: MenuPresentationItem;
+    qty: number;
+    position: number;
+    onAdd: () => void;
+    onDecrease: () => void;
+  }>,
+) {
+  return previous.item === next.item && previous.qty === next.qty && previous.position === next.position;
 }
 
 function AddonCustomizerSheet({
@@ -384,33 +428,33 @@ function AddonCustomizerSheet({
   const finalPrice = item.price + selectedPrice;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/45">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-2 pb-0 sm:px-4 sm:pb-4">
       <button
         type="button"
         onClick={onClose}
         className="absolute inset-0"
         aria-label="Close customization"
       />
-      <section className="relative w-full rounded-t-3xl border border-[var(--border)] bg-[var(--bg-surface)] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-14px_36px_-20px_rgba(0,0,0,0.8)]">
+      <section className="relative w-full max-w-[32rem] rounded-t-3xl border border-[var(--border)] bg-[var(--bg-surface)] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-[0_-14px_36px_-20px_rgba(0,0,0,0.8)] sm:rounded-3xl sm:p-5 sm:pb-5">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-secondary)]">Customize</p>
         <h3 className="mt-1 text-base font-semibold text-[var(--text-primary)]">{toTitleCaseLabel(item.name)}</h3>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">Select optional add-ons</p>
 
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-3 space-y-2">
           {addons.map((addon) => {
             const key = `${addon.name}:${addon.price}`;
             const checked = Boolean(selected[key]);
             return (
               <label
                 key={key}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2.5"
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2.5 transition-colors duration-150 hover:border-[var(--border-warm)]"
               >
-                <span className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                <span className="flex items-center gap-2.5 text-sm text-[var(--text-primary)]">
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => onChange({ ...selected, [key]: !checked })}
-                    className="h-4 w-4 rounded border-[var(--border-warm)] accent-[var(--accent-gold)]"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-[var(--border-warm)] accent-[var(--accent-gold)]"
                   />
                   {addon.name}
                 </span>
@@ -420,7 +464,7 @@ function AddonCustomizerSheet({
           })}
         </div>
 
-        <div className="mt-4 flex items-center gap-2.5">
+        <div className="mt-4 grid grid-cols-2 items-center gap-2.5">
           <button
             type="button"
             onClick={onClose}
@@ -431,7 +475,7 @@ function AddonCustomizerSheet({
           <button
             type="button"
             onClick={onConfirm}
-            className="btn-gold inline-flex h-11 flex-[1.3] items-center justify-center rounded-xl text-sm font-semibold shadow-[0_4px_14px_rgba(252,176,58,0.25)]"
+            className="btn-gold inline-flex h-11 items-center justify-center rounded-xl text-sm font-semibold shadow-[0_4px_14px_rgba(252,176,58,0.25)]"
           >
             Add {formatCurrency(finalPrice)}
           </button>
@@ -441,26 +485,86 @@ function AddonCustomizerSheet({
   );
 }
 
-function MenuItemImage({ src, alt, categoryId }: { src: string; alt: string; categoryId: string }) {
+function MenuItemImage({
+  src,
+  alt,
+  categoryId,
+  prioritizeLoad,
+}: {
+  src: string;
+  alt: string;
+  categoryId: string;
+  prioritizeLoad: boolean;
+}) {
   const [imgSrc, setImgSrc] = useState(src || "/placeholder.png");
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(prioritizeLoad);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setImgSrc(src || "/placeholder.png");
+    setIsLoaded(false);
+    if (prioritizeLoad) {
+      setIsNearViewport(true);
+    }
+  }, [prioritizeLoad, src]);
+
+  useEffect(() => {
+    if (prioritizeLoad || isNearViewport) return;
+    const target = rootRef.current;
+    if (!target || typeof window === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setIsNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { root: null, rootMargin: IMAGE_PRELOAD_MARGIN, threshold: 0.01 },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [isNearViewport, prioritizeLoad]);
 
   const handleError = () => {
     if (imgSrc !== MENU_DEFAULT_IMAGE) {
-      const fallback = resolveMenuImage({ id: "", name: "", category_id: categoryId, description: null, image_url: null, price: 0, is_veg: false, is_non_veg: false, is_bestseller: false, active: true });
+      const fallback = resolveMenuImage({
+        id: "",
+        name: "",
+        category_id: categoryId,
+        description: null,
+        image_url: null,
+        price: 0,
+        is_veg: false,
+        is_non_veg: false,
+        is_bestseller: false,
+        active: true,
+      });
       setImgSrc(fallback !== src ? fallback : MENU_DEFAULT_IMAGE);
+      setIsLoaded(false);
     }
   };
 
   return (
-    <img
-      src={imgSrc}
-      alt={alt}
-      width={80}
-      height={80}
-      loading="lazy"
-      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-      onError={handleError}
-    />
+    <div ref={rootRef} className="relative h-full w-full">
+      {!isLoaded ? <Skeleton className="absolute inset-0 rounded-none" /> : null}
+      {isNearViewport ? (
+        <Image
+          src={imgSrc}
+          alt={alt}
+          fill
+          sizes="80px"
+          loading={prioritizeLoad ? "eager" : "lazy"}
+          priority={prioritizeLoad}
+          className={`object-cover transition-transform duration-300 group-hover:scale-105 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setIsLoaded(true)}
+          onError={handleError}
+        />
+      ) : null}
+    </div>
   );
 }
 
