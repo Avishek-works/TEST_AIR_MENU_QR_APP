@@ -34,7 +34,12 @@ export async function createBillItems(items: BillItemInsertInput[]): Promise<{ e
   return { error };
 }
 
-export async function listProductsForMenu(): Promise<{ data: ProductRecord[] | null; error: PostgrestError | null }> {
+export async function listProductsForMenu(
+  clientId: string,
+): Promise<{ data: ProductRecord[] | null; error: PostgrestError | null }> {
   const publicSupabase = createPublicSupabase();
-  return publicSupabase.from("products").select("id,name,price,type,image_url");
+  return publicSupabase
+    .from("products")
+    .select("id,name,price,type,image_url")
+    .eq("client_id", clientId);
 }

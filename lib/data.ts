@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { getBillOrderDetails } from "@/db/bills";
 import { listProductsForMenu } from "@/db/orders";
+import { getConfiguredClientId } from "@/lib/config";
 import { sortCategoryNames } from "@/lib/menu-ui";
 import type { MenuCategory, RawMenuItem } from "@/lib/types";
 
@@ -8,7 +9,12 @@ export const normalizeTable = (tableId: string) => tableId.trim().toUpperCase();
 
 export async function getMenuData(): Promise<{ categories: MenuCategory[]; items: RawMenuItem[] }> {
   noStore();
-  const { data: products, error } = await listProductsForMenu();
+  const clientId = getConfiguredClientId();
+  if (!clientId) {
+    throw new Error("Missing or invalid restaurant client ID.");
+  }
+
+  const { data: products, error } = await listProductsForMenu(clientId);
   console.log("[getMenuData] products response data:", products);
 
   if (error) {
