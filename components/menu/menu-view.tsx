@@ -79,7 +79,11 @@ export function MenuView({ tableNumber, categories, items }: MenuViewProps) {
       if (bestOnly && !item.uiIsBestseller) return false;
 
       if (!normalizedQuery) return true;
-      return item.name.toLowerCase().includes(normalizedQuery) || (item.description ?? "").toLowerCase().includes(normalizedQuery);
+      return (
+        item.name.toLowerCase().includes(normalizedQuery) ||
+        item.category_id.toLowerCase().includes(normalizedQuery) ||
+        (item.description ?? "").toLowerCase().includes(normalizedQuery)
+      );
     });
   }, [bestOnly, enrichedItems, nonVegOnly, query, vegOnly]);
 
