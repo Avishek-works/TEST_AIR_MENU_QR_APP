@@ -37,7 +37,7 @@ export const BESTSELLER_KEYWORDS = [
   "croissant",
   "american chicken sandwich",
   "chicken peri peri burger",
-  "tandoori chicken pizza",
+  "Tandoor Chicken Pizza",
   "chicken cheese toast",
 ] as const;
 
