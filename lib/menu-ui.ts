@@ -35,6 +35,10 @@ export const BESTSELLER_KEYWORDS = [
   "cold coffee",
   "brownie",
   "croissant",
+  "american chicken sandwich",
+  "chicken peri peri burger",
+  "tandoori chicken pizza",
+  "chicken cheese toast",
 ] as const;
 
 export const IMAGE_BY_ITEM_ID: MenuImageByIdMap = {};
