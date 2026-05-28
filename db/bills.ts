@@ -26,6 +26,7 @@ export interface OrderDetailsRecord {
   id: string;
   table_number: string;
   final_amount: number;
+  status: string;
 }
 
 export async function createBill(
@@ -69,5 +70,5 @@ export async function getBillOrderDetails(
   orderId: string,
 ): Promise<{ data: OrderDetailsRecord | null; error: PostgrestError | null }> {
   const adminSupabase = createAdminSupabase();
-  return adminSupabase.from("bills").select("id,table_number,final_amount").eq("id", orderId).maybeSingle();
+  return adminSupabase.from("bills").select("id,table_number,final_amount,status").eq("id", orderId).maybeSingle();
 }
