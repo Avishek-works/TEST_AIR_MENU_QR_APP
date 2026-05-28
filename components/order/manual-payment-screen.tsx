@@ -40,7 +40,6 @@ export function ManualPaymentScreen({
   const [isPreparing, setIsPreparing] = useState(isPreparationStatus(initialStatus));
   const [copyMessage, setCopyMessage] = useState("");
 
-  const displayOrderRef = orderId.slice(0, 8).toUpperCase();
   const deepUpiLink = useMemo(() => {
     const query = new URLSearchParams({
       pa: upiId,
@@ -104,9 +103,9 @@ export function ManualPaymentScreen({
             <span className="text-xs font-medium text-[var(--text-secondary)]">Table</span>
             <span className="text-xs font-bold text-[var(--text-primary)]">{tableNumber}</span>
           </div>
-          <div className="mt-2 flex items-center justify-between">
+          <div className="mt-2">
             <span className="text-xs font-medium text-[var(--text-secondary)]">Order Ref</span>
-            <span className="text-xs font-bold text-[var(--text-primary)]">#{displayOrderRef}</span>
+            <p className="mt-1 break-all text-xs font-bold text-[var(--text-primary)]">{orderId}</p>
           </div>
         </div>
 

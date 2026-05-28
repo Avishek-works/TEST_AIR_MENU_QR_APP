@@ -19,7 +19,7 @@ Production-ready, mobile-first dine-in QR ordering app built with Next.js 15, Ty
 - Cart notes and customer details flow
 - Server action order placement into shared billing tables (`bills`, `bill_items`)
 - Duplicate submit prevention via loading/disabled submit state
-- Success confirmation screen
+- Manual UPI payment confirmation screen with realtime order-status updates
 - Loading and empty states
 
 ## Routes
@@ -38,6 +38,9 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
+NEXT_PUBLIC_UPI_ID=...
+NEXT_PUBLIC_UPI_MERCHANT_NAME=...
+NEXT_PUBLIC_UPI_QR_IMAGE_URL=...
 ```
 
 Use `.env.example` as a template for required Supabase credentials.
@@ -47,6 +50,9 @@ Required values:
 1. `NEXT_PUBLIC_SUPABASE_URL` — your Supabase project URL
 2. `NEXT_PUBLIC_SUPABASE_ANON_KEY` — public anon key for read-only menu data
 3. `SUPABASE_SERVICE_ROLE_KEY` — secure server-side key for order writes
+4. `NEXT_PUBLIC_UPI_ID` — UPI ID shown to customers on payment screen (placeholder fallback exists)
+5. `NEXT_PUBLIC_UPI_MERCHANT_NAME` — merchant name used in deep UPI link (placeholder fallback exists)
+6. `NEXT_PUBLIC_UPI_QR_IMAGE_URL` — optional static QR image URL/path fallback for UPI payment
 
 ## Supabase setup
 
