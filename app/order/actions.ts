@@ -4,7 +4,7 @@ import {
   createCustomer,
   findCustomerProfileByPhone,
 } from "@/db/customers";
-import { createBill, deleteBillById } from "@/db/bills";
+import { createBill } from "@/db/bills";
 import { createBillItems } from "@/db/orders";
 import { getConfiguredClientId } from "@/lib/config";
 import type { PlaceOrderInput, PlaceOrderResult } from "@/lib/types";
@@ -19,41 +19,7 @@ const phone = (v: unknown): string =>
 
 const isValidPhone = (p: string): boolean => /^\d{10}$/.test(p);
 
-/* ---------------- lookup action (FIX MISSING EXPORT) ---------------- */
-
-export async function lookupCustomerByPhoneAction(
-  phoneInput: string
-) {
-  try {
-    const clientId = getConfiguredClientId();
-    const sanitizedPhone = phone(phoneInput);
-
-    if (!clientId || !isValidPhone(sanitizedPhone)) {
-      return { found: false };
-    }
-
-    const { data } = await findCustomerProfileByPhone(
-      clientId,
-      sanitizedPhone
-    );
-
-    if (!data) return { found: false };
-
-    return {
-      found: true,
-      customer: {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        dob: data.dob,
-      },
-    };
-  } catch {
-    return { found: false };
-  }
-}
-
-/* ---------------- place order ---------------- */
+/* ---------------- order action ---------------- */
 
 export async function placeOrderAction(
   input: PlaceOrderInput
@@ -86,16 +52,16 @@ export async function placeOrderAction(
 
     if (!items.length) return { ok: false, error: "Cart empty" };
 
-    let customerId: string | undefined;
+    let customerId: string;
 
     const existing = await findCustomerProfileByPhone(
       clientId,
       customerPhone
     );
 
-    customerId = existing.data?.id;
-
-    if (!customerId) {
+    if (existing.data?.id) {
+      customerId = existing.data.id;
+    } else {
       const created = await createCustomer({
         clientId,
         name: customerName,
@@ -109,7 +75,7 @@ export async function placeOrderAction(
       customerId = created.data.id;
     }
 
-    const total = items.reduce((a, b) => a + b.total, 0);
+    const total = items.reduce((sum, i) => sum + i.total, 0);
 
     const bill = await createBill({
       clientId,
@@ -125,11 +91,9 @@ export async function placeOrderAction(
       return { ok: false, error: "Bill failed" };
     }
 
-    const billId = bill.data.id;
-
-    const { error: itemError } = await createBillItems(
+    await createBillItems(
       items.map((i) => ({
-        billId,
+        billId: bill.data.id,
         productId: i.productId,
         quantity: i.quantity,
         price: i.price,
@@ -137,14 +101,9 @@ export async function placeOrderAction(
       }))
     );
 
-    if (itemError) {
-      await deleteBillById(billId);
-      return { ok: false, error: "Item insert failed" };
-    }
-
     return {
       ok: true,
-      orderId: billId,
+      orderId: bill.data.id,
     };
   } catch {
     return { ok: false, error: "Server error" };
