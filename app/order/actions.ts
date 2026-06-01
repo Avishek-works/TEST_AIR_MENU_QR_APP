@@ -19,7 +19,7 @@ const phone = (v: unknown): string =>
 
 const isValidPhone = (p: string): boolean => /^\d{10}$/.test(p);
 
-/* ---------------- main action ---------------- */
+/* ---------------- cart type safety ---------------- */
 
 type CartItemInput = {
   menuItemId?: string;
@@ -27,6 +27,8 @@ type CartItemInput = {
   qty?: number;
   unitPrice?: number;
 };
+
+/* ---------------- main action ---------------- */
 
 export async function placeOrderAction(
   input: PlaceOrderInput
@@ -48,8 +50,7 @@ export async function placeOrderAction(
         const qty = Number(i.qty ?? 0);
         const price = Number(i.unitPrice ?? 0);
 
-        const productId =
-          i.menuItemId ?? i.productId ?? "";
+        const productId = i.menuItemId ?? i.productId ?? "";
 
         return {
           productId: String(productId),
@@ -63,6 +64,8 @@ export async function placeOrderAction(
     if (!items.length) {
       return { ok: false, error: "Cart empty" };
     }
+
+    /* ---------------- customer ---------------- */
 
     const existing = await findCustomerProfileByPhone(
       clientId,
@@ -87,6 +90,8 @@ export async function placeOrderAction(
       customerId = created.data.id;
     }
 
+    /* ---------------- bill ---------------- */
+
     const total = items.reduce((sum, i) => sum + i.total, 0);
 
     const bill = await createBill({
@@ -103,8 +108,13 @@ export async function placeOrderAction(
       return { ok: false, error: "Bill creation failed" };
     }
 
+    // FIX: narrow safely
+    const billData = bill.data;
+
+    /* ---------------- bill items ---------------- */
+
     const itemsPayload = items.map((i) => ({
-      billId: bill.data.id,
+      billId: billData.id,
       productId: i.productId,
       quantity: i.quantity,
       price: i.price,
@@ -119,14 +129,14 @@ export async function placeOrderAction(
 
     return {
       ok: true,
-      orderId: bill.data.id,
+      orderId: billData.id,
     };
   } catch {
     return { ok: false, error: "Server error" };
   }
 }
 
-/* ---------------- customer lookup (IMPORTANT EXPORT) ---------------- */
+/* ---------------- customer lookup (USED BY UI) ---------------- */
 
 export async function lookupCustomerByPhoneAction(phoneInput: string) {
   try {
