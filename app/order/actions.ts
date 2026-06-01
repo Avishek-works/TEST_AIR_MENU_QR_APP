@@ -304,6 +304,24 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Could not place order. Please try again." };
     }
 
+    if (!bill.order_id) {
+      console.error("[order] inserted bill missing order_id", {
+        billId: bill.id,
+        clientId: bill.client_id,
+      });
+
+      const { error: rollbackError } = await deleteBillById(bill.id);
+      if (rollbackError) {
+        console.error("[order] rollback delete bills failed after missing order_id", {
+          code: rollbackError.code,
+          message: rollbackError.message,
+        });
+      }
+
+      await cleanupCreatedCustomer("bill_missing_order_id");
+      return { ok: false, error: "Could not place order. Please try again." };
+    }
+
     const billItemPayload = normalizedItems.map((item) => ({
       billId: bill.id,
       productId: item.productId,
@@ -339,7 +357,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Could not save order items. Please retry." };
     }
 
-    return { ok: true, orderId: bill.order_id || bill.id };
+    return { ok: true, orderId: bill.order_id };
   } catch (err) {
     console.error("[order] submit flow crashed", {
       message: err instanceof Error ? err.message : String(err),
