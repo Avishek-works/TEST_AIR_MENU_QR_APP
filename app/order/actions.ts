@@ -42,7 +42,7 @@ export async function placeOrderAction(
         const price = Number(i.unitPrice ?? 0);
 
         return {
-          productId: sanitize(i.menuItemId ?? i.productId),
+          productId: sanitize((i as any).menuItemId),
           quantity: qty,
           price,
           total: qty * price,
