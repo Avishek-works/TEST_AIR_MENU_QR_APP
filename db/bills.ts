@@ -19,15 +19,19 @@ export interface CreateBillInput {
 
 export interface BillInsertRecord {
   id: string;
+  order_id: string | null;
   client_id: string;
 }
 
 export interface OrderDetailsRecord {
   id: string;
+  order_id: string | null;
+  client_id: string;
   table_number: string;
   total_amount: number;
   discount: number;
   final_amount: number;
+  status: string;
   created_at: string;
   items: {
     product_name: string;
@@ -64,7 +68,7 @@ export async function createBill(
     payload[input.notesColumn] = input.notes;
   }
 
-  return adminSupabase.from("bills").insert(payload).select("id,client_id").single();
+  return adminSupabase.from("bills").insert(payload).select("id,order_id,client_id").single();
 }
 
 export async function deleteBillById(billId: string): Promise<{ error: PostgrestError | null }> {
@@ -77,11 +81,23 @@ export async function getBillOrderDetails(
   orderId: string,
 ): Promise<{ data: OrderDetailsRecord | null; error: PostgrestError | null }> {
   const adminSupabase = createAdminSupabase();
-  const { data: bill, error: billError } = await adminSupabase
+  const billSelect = "id,order_id,client_id,table_number,total_amount,discount,final_amount,status,created_at";
+
+  let { data: bill, error: billError } = await adminSupabase
     .from("bills")
-    .select("id,table_number,total_amount,discount,final_amount,created_at")
-    .eq("id", orderId)
+    .select(billSelect)
+    .eq("order_id", orderId)
     .maybeSingle();
+
+  if (!bill && !billError) {
+    const fallbackResult = await adminSupabase
+      .from("bills")
+      .select(billSelect)
+      .eq("id", orderId)
+      .maybeSingle();
+    bill = fallbackResult.data;
+    billError = fallbackResult.error;
+  }
 
   if (billError || !bill) {
     return { data: null, error: billError };
@@ -90,7 +106,7 @@ export async function getBillOrderDetails(
   const { data: billItems, error: billItemsError } = await adminSupabase
     .from("bill_items")
     .select("quantity,total,products(name)")
-    .eq("bill_id", orderId);
+    .eq("bill_id", bill.id);
 
   if (billItemsError) {
     return { data: null, error: billItemsError };

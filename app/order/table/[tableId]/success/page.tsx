@@ -11,10 +11,10 @@ export default async function SuccessPage({
   searchParams: Promise<{ orderId?: string }>;
 }) {
   const { tableId } = await params;
-  const { orderId } = await searchParams;
+  const { orderId: orderReference } = await searchParams;
   const normalizedTable = normalizeTable(tableId);
 
-  if (!orderId) {
+  if (!orderReference) {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
         <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
@@ -29,7 +29,7 @@ export default async function SuccessPage({
   }
 
   try {
-    const order = await getOrderDetails(orderId);
+    const order = await getOrderDetails(orderReference);
     if (!order) {
       return (
         <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
