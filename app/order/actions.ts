@@ -19,7 +19,7 @@ const phone = (v: unknown): string =>
 
 const isValidPhone = (p: string): boolean => /^\d{10}$/.test(p);
 
-/* ---------------- cart type safety ---------------- */
+/* ---------------- cart type ---------------- */
 
 type CartItemInput = {
   menuItemId?: string;
@@ -108,7 +108,7 @@ export async function placeOrderAction(
       return { ok: false, error: "Bill creation failed" };
     }
 
-    // FIX: narrow safely
+    // SAFE NARROWING
     const billData = bill.data;
 
     /* ---------------- bill items ---------------- */
@@ -136,7 +136,7 @@ export async function placeOrderAction(
   }
 }
 
-/* ---------------- customer lookup (USED BY UI) ---------------- */
+/* ---------------- customer lookup (FIXED NULL TYPES) ---------------- */
 
 export async function lookupCustomerByPhoneAction(phoneInput: string) {
   try {
@@ -164,9 +164,9 @@ export async function lookupCustomerByPhoneAction(phoneInput: string) {
       found: true,
       customer: {
         id: data.id,
-        name: data.name,
-        email: data.email,
-        dob: data.dob,
+        name: data.name ?? "",
+        email: data.email ?? "",
+        dob: data.dob ?? "",
       },
     };
   } catch {
