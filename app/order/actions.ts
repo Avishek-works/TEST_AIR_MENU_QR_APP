@@ -339,7 +339,7 @@ export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrd
       return { ok: false, error: "Could not save order items. Please retry." };
     }
 
-    return { ok: true, orderId: bill.id };
+    return { ok: true, orderId: bill.order_id || bill.id };
   } catch (err) {
     console.error("[order] submit flow crashed", {
       message: err instanceof Error ? err.message : String(err),

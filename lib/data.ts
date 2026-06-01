@@ -48,9 +48,9 @@ export async function getMenuData(): Promise<{ categories: MenuCategory[]; items
   return { categories, items };
 }
 
-export async function getOrderDetails(orderId: string) {
+export async function getOrderDetails(orderReference: string) {
   noStore();
-  const { data, error } = await getBillOrderDetails(orderId);
+  const { data, error } = await getBillOrderDetails(orderReference);
 
   if (error) {
     throw error;
