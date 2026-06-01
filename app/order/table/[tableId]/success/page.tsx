@@ -45,7 +45,7 @@ export default async function SuccessPage({
     }
 
     const hasDiscount = Number(order.discount || 0) > 0;
-    const receiptDateTime = order.created_at
+    const orderDateTime = order.created_at
       ? new Intl.DateTimeFormat("en-IN", {
           dateStyle: "medium",
           timeStyle: "short",
@@ -58,18 +58,15 @@ export default async function SuccessPage({
           <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--bg-elevated)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-gold)]">Cafe Coffee Aroma</p>
             <h1 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text-primary)]">Payment Received ✅</h1>
+            <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">Order Summary</p>
             <div className="mt-4 space-y-1 text-sm">
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-[var(--text-secondary)]">Receipt</span>
-                <span className="break-all text-right font-semibold text-[var(--text-primary)]">#{order.id}</span>
-              </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[var(--text-secondary)]">Table</span>
                 <span className="font-semibold text-[var(--text-primary)]">{order.table_number}</span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[var(--text-secondary)]">Date &amp; Time</span>
-                <span className="text-right font-semibold text-[var(--text-primary)]">{receiptDateTime}</span>
+                <span className="text-right font-semibold text-[var(--text-primary)]">{orderDateTime}</span>
               </div>
             </div>
 
