@@ -21,6 +21,13 @@ const isValidPhone = (p: string): boolean => /^\d{10}$/.test(p);
 
 /* ---------------- main action ---------------- */
 
+type CartItemInput = {
+  menuItemId?: string;
+  productId?: string;
+  qty?: number;
+  unitPrice?: number;
+};
+
 export async function placeOrderAction(
   input: PlaceOrderInput
 ): Promise<PlaceOrderResult> {
@@ -36,23 +43,16 @@ export async function placeOrderAction(
       return { ok: false, error: "Invalid input" };
     }
 
-    /* ---------------- normalize cart items ---------------- */
-
     const items = (input.items ?? [])
-      .map((i) => {
+      .map((i: CartItemInput) => {
         const qty = Number(i.qty ?? 0);
         const price = Number(i.unitPrice ?? 0);
 
-        // SAFE: no any, supports both field names
         const productId =
-          "menuItemId" in i
-            ? String((i as { menuItemId: string }).menuItemId)
-            : "productId" in i
-              ? String((i as { productId: string }).productId)
-              : "";
+          i.menuItemId ?? i.productId ?? "";
 
         return {
-          productId,
+          productId: String(productId),
           quantity: qty,
           price,
           total: qty * price,
@@ -63,8 +63,6 @@ export async function placeOrderAction(
     if (!items.length) {
       return { ok: false, error: "Cart empty" };
     }
-
-    /* ---------------- customer resolve ---------------- */
 
     const existing = await findCustomerProfileByPhone(
       clientId,
@@ -89,8 +87,6 @@ export async function placeOrderAction(
       customerId = created.data.id;
     }
 
-    /* ---------------- bill calculation ---------------- */
-
     const total = items.reduce((sum, i) => sum + i.total, 0);
 
     const bill = await createBill({
@@ -106,8 +102,6 @@ export async function placeOrderAction(
     if (bill.error || !bill.data) {
       return { ok: false, error: "Bill creation failed" };
     }
-
-    /* ---------------- bill items ---------------- */
 
     const itemsPayload = items.map((i) => ({
       billId: bill.data.id,
@@ -132,22 +126,24 @@ export async function placeOrderAction(
   }
 }
 
-/* ---------------- customer lookup (required by UI) ---------------- */
+/* ---------------- customer lookup (IMPORTANT EXPORT) ---------------- */
 
 export async function lookupCustomerByPhoneAction(phoneInput: string) {
   try {
     const clientId = getConfiguredClientId();
     if (!clientId) return { found: false };
 
-    const phone = String(phoneInput).replace(/\D+/g, "").slice(0, 10);
+    const cleanedPhone = String(phoneInput)
+      .replace(/\D+/g, "")
+      .slice(0, 10);
 
-    if (phone.length !== 10) {
+    if (cleanedPhone.length !== 10) {
       return { found: false };
     }
 
     const { data, error } = await findCustomerProfileByPhone(
       clientId,
-      phone
+      cleanedPhone
     );
 
     if (error || !data) {
