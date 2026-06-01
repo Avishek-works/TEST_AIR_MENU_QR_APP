@@ -1,39 +1,58 @@
-import Link from "next/link";
-import { normalizeTable } from "@/lib/data";
+import { normalizeTable, getOrderDetails } from "@/lib/data";
 
-export default async function TablePage({
+export default async function SuccessPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tableId: string }>;
+  searchParams: Promise<{ orderId?: string }>;
 }) {
   const { tableId } = await params;
+  const { orderId } = await searchParams;
+
   const normalizedTable = normalizeTable(tableId);
 
-  return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
-      <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-6 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">☕</span>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">
-            Cafe Coffee Aroma
+  if (!orderId) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+          <h1 className="text-xl font-bold">Invalid Order</h1>
+        </section>
+      </main>
+    );
+  }
+
+  try {
+    const order = await getOrderDetails(orderId);
+
+    if (!order) {
+      return (
+        <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+          <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+            <h1 className="text-xl font-bold">Order Not Found</h1>
+          </section>
+        </main>
+      );
+    }
+
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+          <h1 className="text-2xl font-bold">Order Placed 🎉</h1>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
+            Table {normalizedTable}
           </p>
-        </div>
-
-        <h1 className="mt-4 text-4xl font-bold text-[var(--text-primary)] tracking-tight">
-          Table {normalizedTable}
-        </h1>
-
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          Browse the menu and place your order.
-        </p>
-
-        <Link
-          href={`/order/table/${normalizedTable}/menu`}
-          className="btn-gold mt-5 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 font-bold"
-        >
-          Start Ordering →
-        </Link>
-      </section>
-    </main>
-  );
+          <p className="mt-2 text-sm">Order ID: {orderId}</p>
+        </section>
+      </main>
+    );
+  } catch {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+          <h1 className="text-xl font-bold">Something went wrong</h1>
+        </section>
+      </main>
+    );
+  }
 }
