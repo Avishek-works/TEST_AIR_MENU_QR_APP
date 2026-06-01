@@ -55,13 +55,14 @@ export default async function SuccessPage({
         </section>
       </main>
     );
-  } catch (err) {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
-        <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8">
-          <h1 className="text-xl font-bold">Something went wrong</h1>
-        </section>
-      </main>
-    );
+  } catch {
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+      <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8">
+        <h1 className="text-xl font-bold">Something went wrong</h1>
+      </section>
+    </main>
+  );
+}
   }
 }
