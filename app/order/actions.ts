@@ -109,3 +109,37 @@ export async function placeOrderAction(
     return { ok: false, error: "Server error" };
   }
 }
+
+export async function lookupCustomerByPhoneAction(phoneInput: string) {
+  try {
+    const clientId = getConfiguredClientId();
+    if (!clientId) return { found: false };
+
+    const phone = String(phoneInput).replace(/\D+/g, "").slice(0, 10);
+
+    if (phone.length !== 10) {
+      return { found: false };
+    }
+
+    const { data, error } = await findCustomerProfileByPhone(
+      clientId,
+      phone
+    );
+
+    if (error || !data) {
+      return { found: false };
+    }
+
+    return {
+      found: true,
+      customer: {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        dob: data.dob,
+      },
+    };
+  } catch {
+    return { found: false };
+  }
+}
