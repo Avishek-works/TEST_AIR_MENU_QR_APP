@@ -1,4 +1,4 @@
-const DEFAULT_TABLE_COUNT = 12;
+const DEFAULT_TABLE_COUNT = 4;
 
 const toPositiveInteger = (value: string | undefined): number | null => {
   const parsed = Number(value);
