@@ -24,7 +24,7 @@ export default function Home() {
         <div className="home-reveal-delay-1 flex items-center gap-2">
           <span className="text-2xl">☕</span>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--accent-gold)] opacity-90">
-            Coffee Aroma
+            AIR MENU QR Ordering App
           </p>
         </div>
 
