@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getOrderDetails, normalizeTable } from "@/lib/data";
+import { formatCurrency } from "@/lib/format";
 import { ORDER_PREPARATION_ETA_LABEL } from "@/lib/table-config";
 
 export default async function SuccessPage({
@@ -43,30 +44,72 @@ export default async function SuccessPage({
       );
     }
 
+    const hasDiscount = Number(order.discount || 0) > 0;
+    const receiptDateTime = order.created_at
+      ? new Intl.DateTimeFormat("en-IN", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(order.created_at))
+      : "—";
+
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
         <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-surface)] p-8 shadow-[0_24px_56px_-24px_rgba(0,0,0,0.55)]">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent-gold-soft)] text-4xl shadow-[0_0_28px_rgba(252,176,58,0.20)]">
-            ☕
-          </div>
-          <h1 className="mt-6 text-center text-3xl font-bold text-[var(--text-primary)] tracking-tight">Order Confirmed!</h1>
-          <p className="mt-2 text-center text-sm leading-relaxed text-[var(--text-secondary)]">Your order is on its way. Sit back and enjoy the vibe.</p>
+          <div className="rounded-2xl border border-[var(--border-warm)] bg-[var(--bg-elevated)] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-gold)]">Cafe Coffee Aroma</p>
+            <h1 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text-primary)]">Payment Received ✅</h1>
+            <div className="mt-4 space-y-1 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-[var(--text-secondary)]">Receipt</span>
+                <span className="break-all text-right font-semibold text-[var(--text-primary)]">#{order.id}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--text-secondary)]">Table</span>
+                <span className="font-semibold text-[var(--text-primary)]">{order.table_number}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--text-secondary)]">Date &amp; Time</span>
+                <span className="text-right font-semibold text-[var(--text-primary)]">{receiptDateTime}</span>
+              </div>
+            </div>
 
-          <div className="mt-6 rounded-2xl border border-[var(--border-warm)] bg-[var(--bg-elevated)] p-4">
+            <div className="my-4 border-t border-dashed border-[var(--border)]" />
+
+            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--accent-gold)]">Items</p>
+            <div className="mt-3 space-y-2">
+              {order.items.map((item, index) => (
+                <div key={`${item.product_name}-${index}`} className="flex items-start justify-between gap-3 text-sm">
+                  <span className="text-[var(--text-secondary)]">
+                    {item.product_name} × {item.quantity}
+                  </span>
+                  <span className="font-semibold text-[var(--text-primary)]">{formatCurrency(Number(item.total || 0))}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="my-4 border-t border-dashed border-[var(--border)]" />
+
+            {hasDiscount ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--text-secondary)]">Subtotal</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{formatCurrency(Number(order.total_amount || 0))}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-sm">
+                  <span className="text-[var(--text-secondary)]">Discount</span>
+                  <span className="font-semibold text-[var(--text-primary)]">-{formatCurrency(Number(order.discount || 0))}</span>
+                </div>
+                <div className="my-4 border-t border-dashed border-[var(--border)]" />
+              </>
+            ) : null}
+
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[var(--text-secondary)]">Order</span>
-              <span className="text-xs font-bold text-[var(--text-primary)]">#{order.id.slice(0, 8).toUpperCase()}</span>
+              <span className="text-base font-semibold text-[var(--text-secondary)]">Total</span>
+              <span className="text-xl font-bold text-[var(--accent-gold)]">{formatCurrency(Number(order.final_amount || 0))}</span>
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-[var(--text-secondary)]">Table</span>
-              <span className="text-xs font-bold text-[var(--text-primary)]">{order.table_number}</span>
-            </div>
-            <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-2">
-              <span className="text-sm font-medium text-[var(--text-secondary)]">Total</span>
-              <span className="text-lg font-bold text-[var(--accent-gold)]">
-                {Number(order.final_amount || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" })}
-              </span>
-            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+              All prices are inclusive of applicable taxes.
+            </p>
           </div>
 
           <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[linear-gradient(180deg,rgba(252,176,58,0.12),rgba(37,28,18,0.7))] p-4 shadow-[0_12px_28px_-18px_rgba(252,176,58,0.24)] transition-transform duration-200">
