@@ -48,7 +48,8 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
   const [isExistingCustomer, setIsExistingCustomer] = useState<boolean | null>(null);
   const [checkoutStep, setCheckoutStep] = useState<"phone" | "details">("phone");
 
-  const { items, notes, customer, setCustomer, subtotal, clearCart } = useCart();
+  const { items, notes, customer, setCustomer, subtotal, clearCart, orderType } = useCart();
+  const orderTypeLabel = orderType === "Take-Away" ? "🥡 Takeaway" : "🍽 Dine-In";
   const maxDob = useMemo(() => getTodayDateValue(), []);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestLookupTokenRef = useRef(0);
@@ -226,6 +227,8 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
         customerDob: customer.dob,
         notes: combinedNotes || undefined,
         items,
+        orderType,
+        orderSource: "Air Menu",
       });
 
       if (!result.ok || !result.orderId) {
@@ -250,6 +253,11 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
             ? "Enter your phone number to continue."
             : "Confirm your details to place the order."}
         </p>
+
+        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--text-secondary)]">Order Type</p>
+          <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">{orderTypeLabel}</p>
+        </div>
       </div>
 
       {checkoutStep === "phone" ? (

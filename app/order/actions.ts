@@ -40,6 +40,12 @@ export async function placeOrderAction(
     const tableNumber = sanitize(input.tableNumber).toUpperCase();
     const customerPhone = phone(input.customerPhone);
     const customerName = sanitize(input.customerName);
+    const rawOrderType = String(input.orderType ?? "").trim();
+    const orderType =
+      rawOrderType === "Take-Away" || rawOrderType === "Takeaway"
+        ? "Take-Away"
+        : "Dine-In";
+    const orderSource = (typeof input.orderSource === "string" && input.orderSource.trim()) || "Air Menu";
 
     if (!tableNumber || !isValidPhone(customerPhone)) {
       return { ok: false, error: "Invalid input" };
@@ -102,6 +108,8 @@ export async function placeOrderAction(
       discount: 0,
       finalAmount: total,
       status: "PENDING",
+      orderType,
+      orderSource,
     });
 
     if (bill.error || !bill.data) {

@@ -51,6 +51,9 @@ export interface CustomerDraft {
   dob: string;
 }
 
+export type OrderType = "Dine-In" | "Take-Away";
+export type OrderSource = "Air Menu";
+
 export interface PlaceOrderInput {
   tableNumber: string;
   customerName: string;
@@ -59,6 +62,8 @@ export interface PlaceOrderInput {
   customerDob?: string;
   notes?: string;
   items: CartLineItem[];
+  orderType?: OrderType;
+  orderSource?: string;
 }
 
 export interface PlaceOrderResult {
