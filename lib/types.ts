@@ -51,7 +51,7 @@ export interface CustomerDraft {
   dob: string;
 }
 
-export type OrderType = "Dine-In" | "Takeaway";
+export type OrderType = "Dine-In" | "Take-Away";
 export type OrderSource = "Air Menu";
 
 export interface PlaceOrderInput {

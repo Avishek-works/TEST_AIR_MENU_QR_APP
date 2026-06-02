@@ -25,7 +25,10 @@ export default async function SuccessPage({
   }
 
   const order = await getOrderDetails(orderId);
-  const orderTypeLabel = order?.order_type === "Takeaway" ? "🥡 Takeaway" : "🍽 Dine-In";
+  const orderTypeLabel =
+    order?.order_type === "Take-Away" || order?.order_type === "Takeaway"
+      ? "🥡 Takeaway"
+      : "🍽 Dine-In";
 
   if (!order) {
     return (

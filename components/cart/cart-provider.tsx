@@ -94,7 +94,7 @@ const sanitizeStoredCart = (value: unknown): StoredCart => {
   });
 
   const rawOrderType = typeof parsed.orderType === "string" ? parsed.orderType : DEFAULT_ORDER_TYPE;
-  const orderType = rawOrderType === "Takeaway" ? "Takeaway" : DEFAULT_ORDER_TYPE;
+  const orderType = rawOrderType === "Take-Away" || rawOrderType === "Takeaway" ? "Take-Away" : DEFAULT_ORDER_TYPE;
 
   return {
     tableId: typeof parsed.tableId === "string" ? parsed.tableId : null,

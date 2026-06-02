@@ -49,7 +49,7 @@ export function CustomerDetailsForm({ tableId, allowOrderNotes }: { tableId: str
   const [checkoutStep, setCheckoutStep] = useState<"phone" | "details">("phone");
 
   const { items, notes, customer, setCustomer, subtotal, clearCart, orderType } = useCart();
-  const orderTypeLabel = orderType === "Takeaway" ? "🥡 Takeaway" : "🍽 Dine-In";
+  const orderTypeLabel = orderType === "Take-Away" ? "🥡 Takeaway" : "🍽 Dine-In";
   const maxDob = useMemo(() => getTodayDateValue(), []);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestLookupTokenRef = useRef(0);

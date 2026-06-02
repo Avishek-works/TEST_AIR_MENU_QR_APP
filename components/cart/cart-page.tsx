@@ -10,7 +10,7 @@ export function CartPageView({ tableId, allowOrderNotes }: { tableId: string; al
   const { items, subtotal, notes, setNotes, setQty, orderType, setOrderType } = useCart();
 
   const orderTypeHelperText =
-    orderType === "Takeaway"
+    orderType === "Take-Away"
       ? "🥡 Packed for takeaway pickup"
       : `🍽 Served at Table ${tableId}`;
 
@@ -100,9 +100,9 @@ export function CartPageView({ tableId, allowOrderNotes }: { tableId: string; al
               </button>
               <button
                 type="button"
-                onClick={() => setOrderType("Takeaway")}
+                onClick={() => setOrderType("Take-Away")}
                 className={`inline-flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition ${
-                  orderType === "Takeaway"
+                  orderType === "Take-Away"
                     ? "bg-[var(--accent-gold)] text-black"
                     : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]"
                 }`}
