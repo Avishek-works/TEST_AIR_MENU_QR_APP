@@ -93,7 +93,7 @@ const sanitizeStoredCart = (value: unknown): StoredCart => {
     if (sanitized) sanitizedItems[sanitized.lineId ?? key] = sanitized;
   });
 
-  const rawOrderType = typeof parsed.orderType === "string" ? parsed.orderType : DEFAULT_ORDER_TYPE;
+  const rawOrderType = typeof parsed.orderType === "string" ? String(parsed.orderType) : DEFAULT_ORDER_TYPE;
   const orderType = rawOrderType === "Take-Away" || rawOrderType === "Takeaway" ? "Take-Away" : DEFAULT_ORDER_TYPE;
 
   return {
