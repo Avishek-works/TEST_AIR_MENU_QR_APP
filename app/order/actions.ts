@@ -40,9 +40,9 @@ export async function placeOrderAction(
     const tableNumber = sanitize(input.tableNumber).toUpperCase();
     const customerPhone = phone(input.customerPhone);
     const customerName = sanitize(input.customerName);
-    const normalizedOrderType = typeof input.orderType === "string" ? input.orderType : undefined;
+    const rawOrderType = String(input.orderType ?? "").trim();
     const orderType =
-      normalizedOrderType === "Take-Away" || normalizedOrderType === "Takeaway"
+      rawOrderType === "Take-Away" || rawOrderType === "Takeaway"
         ? "Take-Away"
         : "Dine-In";
     const orderSource = (typeof input.orderSource === "string" && input.orderSource.trim()) || "Air Menu";
