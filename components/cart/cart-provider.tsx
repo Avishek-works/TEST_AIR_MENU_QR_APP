@@ -1,15 +1,17 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import type { CartLineItem, CustomerDraft } from "@/lib/types";
+import type { CartLineItem, CustomerDraft, OrderType } from "@/lib/types";
 
 const STORAGE_KEY = "cca-cart-v1";
+const DEFAULT_ORDER_TYPE: OrderType = "Dine-In";
 
 interface StoredCart {
   tableId: string | null;
   notes: string;
   customer: CustomerDraft;
   items: Record<string, CartLineItem>;
+  orderType: OrderType;
 }
 
 interface CartContextValue {
@@ -19,6 +21,8 @@ interface CartContextValue {
   customer: CustomerDraft;
   itemCount: number;
   subtotal: number;
+  orderType: OrderType;
+  setOrderType: (orderType: OrderType) => void;
   setTable: (tableId: string) => void;
   addItem: (item: Omit<CartLineItem, "qty">) => void;
   setQty: (lineId: string, qty: number) => void;
@@ -35,6 +39,7 @@ const emptyCart: StoredCart = {
   notes: "",
   customer: defaultCustomer,
   items: {},
+  orderType: DEFAULT_ORDER_TYPE,
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -88,11 +93,15 @@ const sanitizeStoredCart = (value: unknown): StoredCart => {
     if (sanitized) sanitizedItems[sanitized.lineId ?? key] = sanitized;
   });
 
+  const rawOrderType = typeof parsed.orderType === "string" ? parsed.orderType : DEFAULT_ORDER_TYPE;
+  const orderType = rawOrderType === "Takeaway" ? "Takeaway" : DEFAULT_ORDER_TYPE;
+
   return {
     tableId: typeof parsed.tableId === "string" ? parsed.tableId : null,
     notes: typeof parsed.notes === "string" ? parsed.notes : "",
     customer: { ...defaultCustomer, ...(parsed.customer ?? {}) },
     items: sanitizedItems,
+    orderType,
   };
 };
 
@@ -132,9 +141,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     customer: cart.customer,
     itemCount,
     subtotal,
+    orderType: cart.orderType,
+    setOrderType: (orderType) => setCart((current) => ({ ...current, orderType })),
     setTable: (tableId) =>
       setCart((current) =>
-        current.tableId === tableId ? current : { tableId, notes: "", customer: defaultCustomer, items: {} },
+        current.tableId === tableId
+          ? current
+          : { tableId, notes: "", customer: defaultCustomer, items: {}, orderType: current.orderType },
       ),
     addItem: (item) =>
       setCart((current) => {

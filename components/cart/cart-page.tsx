@@ -7,7 +7,12 @@ import { formatCurrency } from "@/lib/format";
 import { toTitleCaseLabel } from "@/lib/menu-ui";
 
 export function CartPageView({ tableId, allowOrderNotes }: { tableId: string; allowOrderNotes: boolean }) {
-  const { items, subtotal, notes, setNotes, setQty } = useCart();
+  const { items, subtotal, notes, setNotes, setQty, orderType, setOrderType } = useCart();
+
+  const orderTypeHelperText =
+    orderType === "Takeaway"
+      ? "🥡 Packed for takeaway pickup"
+      : `🍽 Served at Table ${tableId}`;
 
   return (
     <section>
@@ -77,6 +82,36 @@ export function CartPageView({ tableId, allowOrderNotes }: { tableId: string; al
                 />
               </label>
             ) : null}
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] p-3 shadow-[0_12px_28px_-16px_rgba(0,0,0,0.55)]">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setOrderType("Dine-In")}
+                className={`inline-flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition ${
+                  orderType === "Dine-In"
+                    ? "bg-[var(--accent-gold)] text-black"
+                    : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]"
+                }`}
+              >
+                <span>🍽</span>
+                <span>Dine-In</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrderType("Takeaway")}
+                className={`inline-flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition ${
+                  orderType === "Takeaway"
+                    ? "bg-[var(--accent-gold)] text-black"
+                    : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]"
+                }`}
+              >
+                <span>🥡</span>
+                <span>Takeaway</span>
+              </button>
+            </div>
+            <p className="mt-3 text-sm text-[var(--text-secondary)]">{orderTypeHelperText}</p>
           </div>
 
           {/* Sticky checkout */}

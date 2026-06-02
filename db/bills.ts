@@ -15,12 +15,16 @@ export interface CreateBillInput {
   status: string;
   notesColumn?: NotesColumn | null;
   notes?: string;
+  orderType?: string;
+  orderSource?: string;
 }
 
 export interface BillInsertRecord {
   id: string;
   order_id: string | null;
   client_id: string;
+  order_type?: string | null;
+  order_source?: string | null;
 }
 
 export interface OrderDetailsRecord {
@@ -32,6 +36,8 @@ export interface OrderDetailsRecord {
   discount: number;
   final_amount: number;
   status: string;
+  order_type?: string | null;
+  order_source?: string | null;
   created_at: string;
   items: {
     product_name: string;
@@ -54,6 +60,8 @@ export async function createBill(
     status: string;
     order_notes?: string;
     notes?: string;
+    order_type?: string;
+    order_source?: string;
   } = {
     client_id: input.clientId,
     customer_id: input.customerId,
@@ -66,6 +74,14 @@ export async function createBill(
 
   if (input.notesColumn && input.notes) {
     payload[input.notesColumn] = input.notes;
+  }
+
+  if (typeof input.orderType === "string" && input.orderType.trim()) {
+    payload.order_type = input.orderType.trim();
+  }
+
+  if (typeof input.orderSource === "string" && input.orderSource.trim()) {
+    payload.order_source = input.orderSource.trim();
   }
 
   return adminSupabase.from("bills").insert(payload).select("id,order_id,client_id").single();
@@ -81,7 +97,7 @@ export async function getBillOrderDetails(
   orderId: string,
 ): Promise<{ data: OrderDetailsRecord | null; error: PostgrestError | null }> {
   const adminSupabase = createAdminSupabase();
-  const billSelect = "id,order_id,client_id,table_number,total_amount,discount,final_amount,status,created_at";
+  const billSelect = "id,order_id,client_id,table_number,total_amount,discount,final_amount,status,order_type,order_source,created_at";
 
   let { data: bill, error: billError } = await adminSupabase
     .from("bills")
